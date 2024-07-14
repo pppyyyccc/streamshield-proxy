@@ -13,7 +13,7 @@ docker run -d -p 4994:4994 --name streamshield-proxy \
   --restart always streamshield-proxy
   
   解释
-CUSTOM_DOMAIN="http://aa.aa:port" #pixman安装完的URL 可以是http 也可以是https 可以是ip地址也可以是域名，例如http://1.1.1.1:5000或者自己反代完的https://bb.bb.bb
+CUSTOM_DOMAIN="http://aa.aa:port" #pixman安装完的URL （不需要填写m3u,已经聚合YSP和4GTV）可以是http 也可以是https 可以是ip地址也可以是域名，例如http://1.1.1.1:5000或者自己反代完的https://bb.bb.bb
 
 VPS_HOST="https://your-custom-vps-host.com"#你自己VPS想用的URL 可以是http 也可以是https 可以是ip地址也可以是域名，例如http://2.2.2.2:4994或者自己反代完的https://cc.cc.cc
 
