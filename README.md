@@ -23,6 +23,8 @@ docker run -d -p 8888:4994 --name streamshield-proxy \
   -e VPS_HOST="http://200.200.200.200:8888" \
   --restart always streamshield-proxy
 
+https里的URL需要自己先做好反向代理
+
 docker run -d -p 444:4994 --name streamshield-proxy \
   -e CUSTOM_DOMAIN="https:/pixman.aaaa.com" \
   -e VPS_HOST="https://iptv.bbbb.com" \
