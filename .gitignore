@@ -1,0 +1,14 @@
+# .gitignore
+*.log
+*.tmp
+*.bak
+*.sha256
+-e
+exporting
+extracting
+[internal]
+naming
+resolve
+--restart
+transferring
+writing

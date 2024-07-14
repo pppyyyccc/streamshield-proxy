@@ -5,20 +5,14 @@ const { Headers, Request } = require('node-fetch');
 
 // 解析环境变量
 const CUSTOM_DOMAIN = process.env.CUSTOM_DOMAIN || 'default-domain.com';
-const parsedCustomDomain = url.parse(CUSTOM_DOMAIN);
-const protocol = parsedCustomDomain.protocol || (CUSTOM_DOMAIN.startsWith('https') ? 'https:' : 'http:');
-const host = parsedCustomDomain.host || CUSTOM_DOMAIN.split('/')[2].split(':')[0];
-const port = parsedCustomDomain.port || (protocol === 'https:' ? '443' : '80');
-
-const VPS_HOST = process.env.VPS_HOST || 'default-vps-host.com';
-const parsedVpsHost = url.parse(VPS_HOST);
-const vpsProtocol = parsedVpsHost.protocol || (VPS_HOST.startsWith('https') ? 'https:' : 'http:');
-const vpsHost = parsedVpsHost.host || VPS_HOST.split('/')[2].split(':')[0];
-const vpsPort = parsedVpsHost.port || (vpsProtocol === 'https:' ? '443' : '80');
+const parsedUrl = url.parse(CUSTOM_DOMAIN);
+const protocol = parsedUrl.protocol || (CUSTOM_DOMAIN.startsWith('https') ? 'https:' : 'http:');
+const host = parsedUrl.hostname || CUSTOM_DOMAIN.split('/')[2].split(':')[0];
+const port = parsedUrl.port || (protocol === 'https:' ? '443' : '80');
 
 // 生成URL
-const YSP_URL = `${protocol}//${host}:${port}/ysp.m3u`;
-const FOUR_SEASONS_URL = `${protocol}//${host}:${port}/4gtv.m3u`;
+const YSP_URL = `${protocol}//${host}${port ? `:${port}` : ''}/ysp.m3u`;
+const FOUR_SEASONS_URL = `${protocol}//${host}${port ? `:${port}` : ''}/4gtv.m3u`;
 const PROXY_DOMAIN = host;
 
 // 定义源地址
@@ -46,7 +40,7 @@ function identity(it) { return it; }
 
 function proxify(it) {
   for (const dom of PROXY_DOMAINS) {
-    it = it.replace(new RegExp('https?://' + dom, 'g'), `${vpsProtocol}//${vpsHost}:${vpsPort}/proxy/$&`);
+    it = it.replace(new RegExp('https?://' + dom, 'g'), process.env.VPS_HOST + '/proxy/$&');
   }
   return it;
 }
