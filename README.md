@@ -3,6 +3,8 @@ StreamShield Proxy 是一个用于解决大陆无法直接播放来自 pixman.io
 
 YSP不走VPS直连。速率上下行总和为5Mbps 一天40GB左右流量。
 
+终端软件地址比如TVBOX直接写http://2.2.2.2:4994或者自己反代完的https://cc.cc.cc
+
 
 Docker 部署
 docker pull ppyycc/streamshield-proxy:latest
