@@ -17,6 +17,17 @@ CUSTOM_DOMAIN="http://aa.aa:port" #pixman安装完的URL （不需要填写m3u,�
 
 VPS_HOST="https://your-custom-vps-host.com"#你自己VPS想用的URL 可以是http 也可以是https 可以是ip地址也可以是域名，例如http://2.2.2.2:4994或者自己反代完的https://cc.cc.cc
 
+例子
+docker run -d -p 8888:4994 --name streamshield-proxy \
+  -e CUSTOM_DOMAIN="http:/100.100.100.100:5000" \
+  -e VPS_HOST="http://200.200.200.200:8888" \
+  --restart always streamshield-proxy
+
+docker run -d -p 444:4994 --name streamshield-proxy \
+  -e CUSTOM_DOMAIN="https:/pixman.aaaa.com" \
+  -e VPS_HOST="https://iptv.bbbb.com" \
+  --restart always streamshield-proxy
+  
 StreamShield Proxy
 
 Overview
