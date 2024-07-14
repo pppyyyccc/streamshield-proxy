@@ -1,0 +1,14 @@
+{
+  "name": "streamshield-proxy",
+  "version": "1.0.0",
+  "description": "A secure and reliable streaming media proxy service",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js"
+  },
+  "dependencies": {
+    "node-fetch": "^2.6.1"
+  },
+  "author": "",
+  "license": "ISC"
+}
