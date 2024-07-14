@@ -1,3 +1,19 @@
+ Ignore all files by default
+/*
+
+# Allow specific files
+!/Dockerfile
+!/index.js
+!/package.json
+
+# Ignore specific directories
+/node_modules
+/.env
+
+# Ignore untracked files
+CACHED
+[auth]
+
 # .gitignore
 *.log
 *.tmp
