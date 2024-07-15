@@ -33,7 +33,8 @@ docker run -d -p 4994:4994 --name streamshield-proxy \
 -e CUSTOM_DOMAIN="http://aa.aa:port" \
 -e VPS_HOST="http://your-custom-vps-host.com:port" \
 -e SECURITY_TOKEN="testtoken" \
---restart always streamshield-proxy
+--restart always \
+ppyycc/streamshield-proxy:latest
 
 ## 环境变量
 
@@ -61,7 +62,8 @@ docker run -d -p 8888:4994 --name streamshield-proxy \
 -e CUSTOM_DOMAIN="http://100.100.100.100:5000" \
 -e VPS_HOST="http://200.200.200.200:8888" \
 -e SECURITY_TOKEN="test11" \
---restart always streamshield-proxy
+--restart always \
+ppyycc/streamshield-proxy:latest
 
 你的访问地址是http://200.200.200.200:8888/test11
 
@@ -72,7 +74,8 @@ docker run -d -p 444:4994 --name streamshield-proxy \
 -e CUSTOM_DOMAIN="https://pixman.aaaa.com" \
 -e VPS_HOST="https://iptv.bbbb.com" \
 -e SECURITY_TOKEN="test222" \
---restart always streamshield-proxy
+--restart always \
+ppyycc/streamshield-proxy:latest
 
 你的访问地址是https://iptv.bbbb.com/test222
 
