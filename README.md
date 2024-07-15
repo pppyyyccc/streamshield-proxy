@@ -6,8 +6,9 @@ StreamShield Proxy 是一个旨在解决中国大陆无法直接播放来自 pix
 
 ## 功能
 
-- **代理 4gtv.m3u**：使得在中国大陆可以访问原本无法访问的 4gtv.m3u 文件。
-- **集成 YSP**：最初集成了 YSP，以扩大内容访问范围。
+- **代理 4gtv.m3u mytvsuper.m3u**：使得在中国大陆可以访问原本无法访问的 四季和MytvSuper文件。
+- **集成 央视屏 中国移动 iTV 蜀小果 江苏移动魔百盒 TPTV**：最初集成了央视屏 中国移动 iTV 蜀小果 江苏移动魔百盒，以扩大内容访问范围。
+- **安全设置**：新增安全token，防止被扫描到白嫖。
 - **简化配置**：提供了一个简单的设置过程，使得配置流媒体解决方案更加容易。
 - 支持arm64和amd64。
 
@@ -31,6 +32,7 @@ StreamShield Proxy 是一个旨在解决中国大陆无法直接播放来自 pix
 docker run -d -p 4994:4994 --name streamshield-proxy \
 -e CUSTOM_DOMAIN="http://aa.aa:port" \
 -e VPS_HOST="http://your-custom-vps-host.com:port" \
+-e SECURITY_TOKEN="testtoken" \
 --restart always streamshield-proxy
 
 ## 环境变量
@@ -56,18 +58,23 @@ VPS_HOST：你的 VPS 的 URL。也可以是 HTTP 或 HTTPS，可以是 IP 地�
 docker run -d -p 8888:4994 --name streamshield-proxy \
 -e CUSTOM_DOMAIN="http://100.100.100.100:5000" \
 -e VPS_HOST="http://200.200.200.200:8888" \
+-e SECURITY_TOKEN="test11" \
 --restart always streamshield-proxy
 
+你的访问地址是http://200.200.200.200:8888/test11
 
 ### 使用域名和 HTTPS：
 docker run -d -p 444:4994 --name streamshield-proxy \
 -e CUSTOM_DOMAIN="https://pixman.aaaa.com" \
 -e VPS_HOST="https://iptv.bbbb.com" \
+-e SECURITY_TOKEN="test222" \
 --restart always streamshield-proxy
+
+你的访问地址是[http://200.200.200.200:8888](https://iptv.bbbb.com)/test222
 
 ## 终端配置
 
-比如在TVBOX之类的直播配置中填入https://iptv.bbbb.com或者http://200.200.200.200:8888便能聚合播放YSP和4GTV的流媒体
+比如在TVBOX之类的直播配置中填入https://iptv.bbbb.com/testtoken或者http://200.200.200.200:8888/testtoken便能播放聚合流媒体
 
 ## 社区和支持
 
