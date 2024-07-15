@@ -2,7 +2,7 @@
 
 ## 概述
 
-StreamShield Proxy 是一个旨在解决中国大陆无法直接播放来自 pixman.io 的 4gtv.m3u 文件的项目。由于存在限制，即使利用 Cloudflare 的免费层来代理 TS 文件也不够。因此，该项目使用个人 VPS（比如义父甲骨文的ARM机） 来代理和转发所需的流量，从而简化了流媒体配置过程，相比其他解决方案尤其家里没有卵路由环境或者不方便安装环境配置更简单。
+StreamShield Proxy 是一个旨在解决由于IP问题无法直接播放来自 pixman.io 的 4gtv.m3u 文件的项目。Cloudflare 的免费版也不能代理 TS流文件。因此，该项目使用个人 VPS（比如甲骨文的ARM机） 来代理和转发所需的流量，从而简化了流媒体配置过程，相比其他解决方案尤其家里没有卵路由环境或者不方便安装环境配置更简单。
 
 ## 功能
 
@@ -29,9 +29,9 @@ StreamShield Proxy 是一个旨在解决中国大陆无法直接播放来自 pix
 
 2. **更新mytvsuper_tivimate.m3u 文件**：
 
-   **每天更新mytvsuper m3u**：由于使用的是mytvsuper_tivimate，所以在运行pixman的机器上自动更新一下，下面命令每天早上和晚上五点自动更新 mytvsuper_tivimate.m3u 文件
+   **每天更新mytvsuper m3u**：由于使用的是mytvsuper_tivimate.m3u作为源，所以在运行pixman docker需要的机器上自动更新此文件，下面命令每天早晚五点自动更新 mytvsuper_tivimate.m3u 文件
  
-(crontab -l 2>/dev/null | grep -v "docker exec pixman sh -c 'flask mytvsuper_tivimate'"; echo "0 5,17 * * * docker exec pixman sh -c 'flask mytvsuper_tivimate'") | crontab -
+  (crontab -l 2>/dev/null | grep -v "docker exec pixman sh -c 'flask mytvsuper_tivimate'"; echo "0 5,17 * * * docker exec pixman sh -c 'flask mytvsuper_tivimate'") | crontab -
 
 或者自己手动加入crontab
 
