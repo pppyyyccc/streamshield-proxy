@@ -78,7 +78,7 @@ docker run -d -p 444:4994 --name streamshield-proxy \
 
 ## 社区和支持
 
-如有关于进一步讨论、故障排除或社区参与的需求，请加入Pixman的 Telegram 群组：https://t.me/livednowgroup。
+如有关于进一步讨论、故障排除或社区参与的需求，请加入Pixman的 Telegram 群组：https://t.me/livednowgroup
 
 
 ## 贡献
