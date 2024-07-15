@@ -23,7 +23,11 @@ StreamShield Proxy 是一个旨在解决由于IP问题无法直接播放来自 p
 
 要使用 Docker 部署 StreamShield Proxy，请按照以下步骤操作：
 
-1. **拉取 Docker 镜像**：
+0. **拉取 Pixman Docker 镜像**：
+
+https://pixman.io/topics/17
+
+1. **拉取 代理Docker 镜像**：
 
    docker pull ppyycc/streamshield-proxy:latest
 
