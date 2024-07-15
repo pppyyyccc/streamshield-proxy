@@ -27,9 +27,12 @@ StreamShield Proxy 是一个旨在解决中国大陆无法直接播放来自 pix
 
    docker pull ppyycc/streamshield-proxy:latest
 
+2. **更新mytvsuper_tivimate.m3u 文件**：
+
    **每天更新mytvsuper m3u**：由于使用的是mytvsuper_tivimate，所以在运行pixman的机器上自动更新一下，下面命令每天早上和晚上五点自动更新 mytvsuper_tivimate.m3u 文件
  
 (crontab -l 2>/dev/null | grep -v "docker exec pixman sh -c 'flask mytvsuper_tivimate'"; echo "0 5,17 * * * docker exec pixman sh -c 'flask mytvsuper_tivimate'") | crontab -
+
 或者自己手动加入crontab
 
 docker exec pixman sh -c 'flask mytvsuper_tivimate'
