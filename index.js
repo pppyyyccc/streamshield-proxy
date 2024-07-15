@@ -1,7 +1,7 @@
 const http = require('http');
 const url = require('url');
 const fetch = require('node-fetch');
-const { Headers, Request } = require('node-fetch');
+const { Headers, Request } = require('node-fetch'); // 修正解构语法
 
 // 解析环境变量
 const CUSTOM_DOMAIN = process.env.CUSTOM_DOMAIN || 'default-domain.com';
@@ -18,7 +18,7 @@ const YSP_URL = `${protocol}//${host}${port ? `:${port}` : ''}/ysp.m3u`;
 const SXG_URL = `${protocol}//${host}${port ? `:${port}` : ''}/sxg.m3u`;
 const ITV_PROXY_URL = `${protocol}//${host}${port ? `:${port}` : ''}/itv_proxy.m3u`;
 const TPTV_PROXY_URL = `${protocol}//${host}${port ? `:${port}` : ''}/tptv_proxy.m3u`;
-const MYTVSUPER_URL = `${protocol}//${host}${port ? `:${port}` : ''}/mytvsuper.m3u`;
+const MYTVSUPER_URL = `${protocol}//${host}${port ? `:${port}` : ''}/mytvsuper-tivimate.m3u`;
 const PROXY_DOMAIN = host;
 
 // 定义源地址
@@ -35,7 +35,8 @@ const SRC = [
   },
   {
     name: 'Beesport 直播源',
-    url: BEESPORT_URL
+    url: BEESPORT_URL,
+    mod: (noproxy) => noproxy ? identity : proxify
   },
   {
     name: '央视频',
@@ -80,6 +81,7 @@ function proxify(it) {
 }
 
 const server = http.createServer(async (req, res) => {
+  console.log(`Received request for: ${req.url}`);
   const token = req.url.split('/')[1];
   if (token === SECURITY_TOKEN) {
     if (req.url.startsWith(`/${SECURITY_TOKEN}/proxy`)) {
@@ -106,7 +108,7 @@ async function handleList(req, res) {
   for (const src of REQ) {
     const resp = await src.response;
     const respText = await resp.text();
-    let channels = respText.split(/^#EXT/gm).map(it => '#EXT' + it).filter(it => it.startsWith('#EXTINF'));
+    let channels = respText.split(/^\#EXT/gm).map(it => '#EXT' + it).filter(it => it.startsWith('#EXTINF'));
 
     if (src.filter) {
       const beforeLen = channels.length;
