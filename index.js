@@ -5,21 +5,23 @@ const { Headers, Request } = require('node-fetch'); // 修正解构语法
 
 // 解析环境变量
 const CUSTOM_DOMAIN = process.env.CUSTOM_DOMAIN || 'default-domain.com';
-const SECURITY_TOKEN = process.env.SECURITY_TOKEN || '';
-const parsedUrl = url.parse(CUSTOM_DOMAIN);
-const protocol = parsedUrl.protocol || (CUSTOM_DOMAIN.startsWith('https') ? 'https:' : 'http:');
-const host = parsedUrl.hostname || CUSTOM_DOMAIN.split('/')[2].split(':')[0];
-const port = parsedUrl.port || (protocol === 'https:' ? '443' : '80');
+const SECURITY_TOKEN = process.env.SECURITY_TOKEN || 'test';
+const VPS_HOST = process.env.VPS_HOST;
+
+if (!VPS_HOST) {
+  console.error('Error: VPS_HOST environment variable is not set.');
+  process.exit(1); // 退出程序
+}
 
 // 生成URL
-const FOUR_SEASONS_URL = `${protocol}//${host}${port ? `:${port}` : ''}/4gtv.m3u`;
-const BEESPORT_URL = `${protocol}//${host}${port ? `:${port}` : ''}/beesport.m3u`;
-const YSP_URL = `${protocol}//${host}${port ? `:${port}` : ''}/ysp.m3u`;
-const SXG_URL = `${protocol}//${host}${port ? `:${port}` : ''}/sxg.m3u`;
-const ITV_PROXY_URL = `${protocol}//${host}${port ? `:${port}` : ''}/itv_proxy.m3u`;
-const TPTV_PROXY_URL = `${protocol}//${host}${port ? `:${port}` : ''}/tptv_proxy.m3u`;
-const MYTVSUPER_URL = `${protocol}//${host}${port ? `:${port}` : ''}/mytvsuper-tivimate.m3u`;
-const PROXY_DOMAIN = host;
+const FOUR_SEASONS_URL = `${CUSTOM_DOMAIN}/4gtv.m3u`;
+const BEESPORT_URL = `${CUSTOM_DOMAIN}/beesport.m3u`;
+const YSP_URL = `${CUSTOM_DOMAIN}/ysp.m3u`;
+const SXG_URL = `${CUSTOM_DOMAIN}/sxg.m3u`;
+const ITV_PROXY_URL = `${CUSTOM_DOMAIN}/itv_proxy.m3u`;
+const TPTV_PROXY_URL = `${CUSTOM_DOMAIN}/tptv_proxy.m3u`;
+const MYTVSUPER_URL = `${CUSTOM_DOMAIN}/mytvsuper-tivimate.m3u`;
+const PROXY_DOMAIN = new URL(CUSTOM_DOMAIN).hostname;
 
 // 定义源地址
 const SRC = [
@@ -75,7 +77,7 @@ function identity(it) { return it; }
 
 function proxify(it) {
   for (const dom of PROXY_DOMAINS) {
-    it = it.replace(new RegExp('https?://' + dom, 'g'), `${process.env.VPS_HOST}/${SECURITY_TOKEN}/proxy/$&`);
+    it = it.replace(new RegExp('https?://' + dom, 'g'), `${VPS_HOST}/${SECURITY_TOKEN}/proxy/$&`);
   }
   return it;
 }
@@ -108,7 +110,7 @@ async function handleList(req, res) {
   for (const src of REQ) {
     const resp = await src.response;
     const respText = await resp.text();
-    let channels = respText.split(/^\#EXT/gm).map(it => '#EXT' + it).filter(it => it.startsWith('#EXTINF'));
+    let channels = respText.split(/^#EXT/gm).map(it => '#EXT' + it).filter(it => it.startsWith('#EXTINF'));
 
     if (src.filter) {
       const beforeLen = channels.length;
