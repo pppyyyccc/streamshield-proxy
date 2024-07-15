@@ -55,6 +55,7 @@ VPS_HOST：你的 VPS 的 URL。也可以是 HTTP 或 HTTPS，可以是 IP 地�
 
 
 ### 使用 IP 地址：
+docker pull ppyycc/streamshield-proxy:latest
 docker run -d -p 8888:4994 --name streamshield-proxy \
 -e CUSTOM_DOMAIN="http://100.100.100.100:5000" \
 -e VPS_HOST="http://200.200.200.200:8888" \
@@ -64,13 +65,14 @@ docker run -d -p 8888:4994 --name streamshield-proxy \
 你的访问地址是http://200.200.200.200:8888/test11
 
 ### 使用域名和 HTTPS：
+docker pull ppyycc/streamshield-proxy:latest
 docker run -d -p 444:4994 --name streamshield-proxy \
 -e CUSTOM_DOMAIN="https://pixman.aaaa.com" \
 -e VPS_HOST="https://iptv.bbbb.com" \
 -e SECURITY_TOKEN="test222" \
 --restart always streamshield-proxy
 
-你的访问地址是[http://200.200.200.200:8888](https://iptv.bbbb.com)/test222
+你的访问地址是https://iptv.bbbb.com/test222
 
 ## 终端配置
 
