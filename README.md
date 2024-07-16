@@ -33,13 +33,12 @@ https://pixman.io/topics/17
 
 2. **更新mytvsuper_tivimate.m3u 文件**：
 
-   **每天更新mytvsuper m3u**：由于使用的是mytvsuper_tivimate.m3u作为源，所以在运行pixman docker需要的机器上自动更新此文件，下面命令每天早晚五点自动更新 mytvsuper_tivimate.m3u 文件
+   **每天更新mytvsuper m3u**：由于使用的是mytvsuper_tivimate.m3u作为源，所以需要在运行pixman docker的机器上自动更新此文件，下面命令每天早晚五点自动更新 mytvsuper_tivimate.m3u 文件
  
   (crontab -l 2>/dev/null | grep -v "docker exec pixman sh -c 'flask mytvsuper_tivimate'"; echo "0 5,17 * * * docker exec pixman sh -c 'flask mytvsuper_tivimate'") | crontab -
 
-或者自己手动加入crontab
+或者自己手动加入crontab,详见https://pixman.io/topics/17
 
-docker exec pixman sh -c 'flask mytvsuper_tivimate'
 
 ## 运行 Docker 容器
 
