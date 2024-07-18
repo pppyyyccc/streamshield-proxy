@@ -99,7 +99,7 @@ ppyycc/streamshield-proxy:latest
 
 ## 终端配置
 
-比如在TVBOX之类的直播配置中填入https://iptv.bbbb.com/testtoken或者http://200.200.200.200:8888/testtoken便能播放聚合流媒体
+比如在TVBOX之类的直播配置中填入https://iptv.bbbb.com/testtoken 或者 http://200.200.200.200:8888/testtoken 便能播放聚合流媒体
 
 ## 社区和支持
 
