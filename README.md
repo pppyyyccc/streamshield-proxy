@@ -39,6 +39,7 @@ https://pixman.io/topics/17
 
 或者自己手动加入crontab,详见https://pixman.io/topics/17
 
+  新增是否要导入mytvsuper_tivimate.m3u开关
 
 ## 运行 Docker 容器
 
@@ -46,6 +47,7 @@ docker run -d -p 4994:4994 --name streamshield-proxy \
 -e CUSTOM_DOMAIN="http://aa.aa:port" \
 -e VPS_HOST="http://your-custom-vps-host.com:port" \
 -e SECURITY_TOKEN="testtoken" \
+-e INCLUDE_MYTVSUPER="true" \ 
 --restart always \
 ppyycc/streamshield-proxy:latest
 
@@ -62,6 +64,8 @@ VPS_HOST：你的 VPS 的 URL。也可以是 HTTP 或 HTTPS，可以是 IP 地�
 
 示例：http://2.2.2.2:4994 或 https://cc.cc.cc
 
+INCLUDE_MYTVSUPER="true" 是否要增加导入mytvsuper_tivimate.m3u， 不写这个值默认不导入（坑太多）
+
 
 
 
@@ -75,10 +79,11 @@ docker run -d -p 8888:4994 --name streamshield-proxy \
 -e CUSTOM_DOMAIN="http://100.100.100.100:5000" \
 -e VPS_HOST="http://200.200.200.200:8888" \
 -e SECURITY_TOKEN="test11" \
+-e INCLUDE_MYTVSUPER="true" \ 
 --restart always \
 ppyycc/streamshield-proxy:latest
 
-你的访问地址是http://200.200.200.200:8888/test11
+你的访问地址是http://200.200.200.200:8888/test11 并且导入mytvsuper_tivimate.m3u
 
 ### 使用域名和 HTTPS：
 docker pull ppyycc/streamshield-proxy:latest
@@ -90,7 +95,7 @@ docker run -d -p 444:4994 --name streamshield-proxy \
 --restart always \
 ppyycc/streamshield-proxy:latest
 
-你的访问地址是https://iptv.bbbb.com/test222
+你的访问地址是https://iptv.bbbb.com/test222 默认没有mytvsuper频道列表
 
 ## 终端配置
 
