@@ -47,7 +47,7 @@ docker run -d -p 4994:4994 --name streamshield-proxy \
 -e CUSTOM_DOMAIN="http://aa.aa:port" \
 -e VPS_HOST="http://your-custom-vps-host.com:port" \
 -e SECURITY_TOKEN="testtoken" \
--e INCLUDE_MYTVSUPER="true" \ 
+-e INCLUDE_MYTVSUPER="true" \
 --restart always \
 ppyycc/streamshield-proxy:latest
 
