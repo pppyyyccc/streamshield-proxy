@@ -2,11 +2,11 @@
 
 ## 概述
 
-StreamShield Proxy 是一个旨在解决由于IP问题无法直接播放来自 pixman.io 的 4gtv.m3u 文件的项目。Cloudflare 的免费版也不能代理 TS流文件。因此，该项目使用个人 VPS（比如甲骨文的ARM机） 来代理和转发所需的流量，从而简化了流媒体配置过程，相比其他解决方案尤其家里没有卵路由环境或者不方便安装环境配置更简单。
+StreamShield Proxy 是一个旨在解决由于IP问题无法直接播放来自 pixman.io 的 4gtv.m3u 等文件的项目。Cloudflare 的免费版也不能代理 TS流文件。因此，该项目使用个人 VPS（比如甲骨文的ARM机） 来代理和转发所需的流量，从而简化了流媒体配置过程，相比其他解决方案尤其家里没有卵路由环境或者不方便安装环境配置更简单。
 
 ## 功能
 
-- **代理 4gtv.m3u mytvsuper.m3u**：使得在中国大陆可以访问原本无法访问的 四季和MytvSuper文件。如要正常收看MytvSuper请自行在pixman docker内添加自己的token。
+- **代理 4gtv.m3u Beesport.m3u mytvsuper.m3u**：使得在中国大陆可以访问原本无法访问的 四季和MytvSuper文件。如要正常收看MytvSuper请自行在pixman docker内添加自己的token。
 - **集成 央视屏 中国移动 iTV 蜀小果 江苏移动魔百盒 TPTV**：集成了央视屏 中国移动 iTV 蜀小果 江苏移动魔百盒，以扩大内容访问范围。
 - **安全设置**：新增安全token，防止被扫描到白嫖。
 - **简化配置**：提供了一个简单的设置过程，使得配置流媒体解决方案更加容易。
