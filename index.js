@@ -7,6 +7,7 @@ const { Headers, Request } = require('node-fetch'); // 修正解构语法
 const CUSTOM_DOMAIN = process.env.CUSTOM_DOMAIN || 'default-domain.com';
 const SECURITY_TOKEN = process.env.SECURITY_TOKEN || 'test';
 const VPS_HOST = process.env.VPS_HOST;
+const INCLUDE_MYTVSUPER = process.env.INCLUDE_MYTVSUPER === 'true'; // 新增的环境变量
 
 if (!VPS_HOST) {
   console.error('Error: VPS_HOST environment variable is not set.');
@@ -23,14 +24,14 @@ const TPTV_PROXY_URL = `${CUSTOM_DOMAIN}/tptv_proxy.m3u`;
 const MYTVSUPER_URL = `${CUSTOM_DOMAIN}/mytvsuper-tivimate.m3u`;
 const PROXY_DOMAIN = new URL(CUSTOM_DOMAIN).hostname;
 
-// 定义源地址
+// 定义源地址，考虑环境变量 INCLUDE_MYTVSUPER
 const SRC = [
   {
     name: '四季',
     url: FOUR_SEASONS_URL,
     mod: (noproxy) => noproxy ? identity : proxify
   },
-  {
+  INCLUDE_MYTVSUPER && {
     name: 'MytvSuper 直播源',
     url: MYTVSUPER_URL,
     mod: (noproxy) => noproxy ? identity : proxify
@@ -56,7 +57,7 @@ const SRC = [
     name: '江苏移动魔百盒 TPTV',
     url: TPTV_PROXY_URL
   }
-];
+].filter(Boolean); // 确保源地址数组没有值为 false 的项
 
 // 定义代理域名
 const PROXY_DOMAINS = [
