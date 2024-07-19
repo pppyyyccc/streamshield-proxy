@@ -1,17 +1,29 @@
 const http = require('http');
 const url = require('url');
 const fetch = require('node-fetch');
-const { Headers } = require('node-fetch');
+const { Headers, Request } = require('node-fetch');  // 修正解构语法
 
 // 解析环境变量
 const CUSTOM_DOMAIN = process.env.CUSTOM_DOMAIN || 'default-domain.com';
-const SECURITY_TOKEN = process.env.SECURITY_TOKEN || 'test';
+const SECURITY_TOKEN = process.env.SECURITY_TOKEN || 'test123';
 const VPS_HOST = process.env.VPS_HOST;
 const INCLUDE_MYTVSUPER = process.env.INCLUDE_MYTVSUPER === 'true';
+const DEBUG = process.env.DEBUG === 'true';  // 新增调试模式开关
 
 if (!VPS_HOST) {
   console.error('Error: VPS_HOST environment variable is not set.');
   process.exit(1);
+}
+
+// 日志函数
+function logDebug(message) {
+  if (DEBUG) {
+    console.log(message);
+  }
+}
+
+function logInfo(message) {
+  console.log(message);
 }
 
 // 生成URL
@@ -84,7 +96,7 @@ function proxify(it) {
 }
 
 const server = http.createServer(async (req, res) => {
-  console.log(`Received request for: ${req.url}`);
+  logDebug(`Received request for: ${req.url}`);
 
   // 处理 OPTIONS 请求
   if (req.method === 'OPTIONS') {
@@ -129,7 +141,7 @@ async function handleList(req, res) {
       const beforeLen = channels.length;
       channels = channels.filter(src.filter);
       const afterLen = channels.length;
-      console.log(`filter ${src.name} ${beforeLen} -> ${afterLen}`);
+      logDebug(`filter ${src.name} ${beforeLen} -> ${afterLen}`);
     }
 
     if (src.mod) {
@@ -148,19 +160,26 @@ async function handleList(req, res) {
 
 async function handleProxy(req, res) {
   try {
-    const targetUrl = new URL(req.url.split(`/${SECURITY_TOKEN}/proxy/`)[1]);
-    console.log('proxying', targetUrl);
+    const urlParts = req.url.split(`/${SECURITY_TOKEN}/proxy/`);
+    if (urlParts.length < 2 || !urlParts[1]) {
+      throw new Error('Invalid proxy request: missing target URL');
+    }
+
+    const targetUrl = new URL(urlParts[1]);
+    logDebug('proxying URL', targetUrl);
 
     // 转发原始请求头
     const headers = new Headers(req.headers);
     headers.delete('host');  // 删除 host 头，让 fetch 自动设置
 
-    let resp = await fetch(targetUrl, { 
+    const proxyReq = new Request(targetUrl, {
       method: req.method,
       headers: headers,
       body: req.method !== 'GET' && req.method !== 'HEAD' ? req : undefined,
       redirect: 'manual'
     });
+
+    const resp = await fetch(proxyReq);
 
     // 处理重定向
     if ([301, 302, 303, 307, 308].includes(resp.status)) {
@@ -177,21 +196,26 @@ async function handleProxy(req, res) {
       return;
     }
 
-    // 处理所有响应，包括 206
-    res.writeHead(resp.status, Object.fromEntries(resp.headers));
-
-    // 对于 MPD 文件和 m3u8 文件，我们需要修改内容
+    // 获取内容类型
     const contentType = resp.headers.get('content-type');
-    if (contentType === 'application/dash+xml' || contentType === 'application/x-mpegURL') {
+    
+    // 如果是特定类型，修改其中的 URL
+    if (contentType === 'application/dash+xml' || contentType === 'application/x-mpegURL' || contentType === 'application/vnd.apple.mpegurl') {
       let respText = await resp.text();
+      logDebug(`Original content: \n${respText}\n`);
       respText = proxify(respText);
+      logDebug(`Proxied content: \n${respText}\n`);
+      res.writeHead(resp.status, Object.fromEntries(resp.headers));
       res.end(respText);
     } else {
       // 对于其他内容（包括媒体段），直接转发
+      res.writeHead(resp.status, Object.fromEntries(resp.headers));
       resp.body.pipe(res);
     }
+    
+    logInfo(`Request for ${targetUrl.href} succeeded with status ${resp.status}`);
   } catch (error) {
-    console.error('Error in handleProxy:', error);
+    console.error('Error in handleProxy:', error.message);
     res.writeHead(500, { 'Content-Type': 'text/plain' });
     res.end('Internal Server Error');
   }
