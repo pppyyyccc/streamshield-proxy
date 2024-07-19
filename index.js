@@ -1,17 +1,17 @@
 const http = require('http');
 const url = require('url');
 const fetch = require('node-fetch');
-const { Headers, Request } = require('node-fetch'); // 修正解构语法
+const { Headers } = require('node-fetch');
 
 // 解析环境变量
 const CUSTOM_DOMAIN = process.env.CUSTOM_DOMAIN || 'default-domain.com';
 const SECURITY_TOKEN = process.env.SECURITY_TOKEN || 'test';
 const VPS_HOST = process.env.VPS_HOST;
-const INCLUDE_MYTVSUPER = process.env.INCLUDE_MYTVSUPER === 'true'; // 新增的环境变量
+const INCLUDE_MYTVSUPER = process.env.INCLUDE_MYTVSUPER === 'true';
 
 if (!VPS_HOST) {
   console.error('Error: VPS_HOST environment variable is not set.');
-  process.exit(1); // 退出程序
+  process.exit(1);
 }
 
 // 生成URL
@@ -57,7 +57,7 @@ const SRC = [
     name: '江苏移动魔百盒 TPTV',
     url: TPTV_PROXY_URL
   }
-].filter(Boolean); // 确保源地址数组没有值为 false 的项
+].filter(Boolean);
 
 // 定义代理域名
 const PROXY_DOMAINS = [
@@ -85,6 +85,18 @@ function proxify(it) {
 
 const server = http.createServer(async (req, res) => {
   console.log(`Received request for: ${req.url}`);
+
+  // 处理 OPTIONS 请求
+  if (req.method === 'OPTIONS') {
+    res.writeHead(200, {
+      'Access-Control-Allow-Origin': '*',
+      'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
+      'Access-Control-Allow-Headers': 'Content-Type, Range'
+    });
+    res.end();
+    return;
+  }
+
   const token = req.url.split('/')[1];
   if (token === SECURITY_TOKEN) {
     if (req.url.startsWith(`/${SECURITY_TOKEN}/proxy`)) {
@@ -139,24 +151,43 @@ async function handleProxy(req, res) {
     const targetUrl = new URL(req.url.split(`/${SECURITY_TOKEN}/proxy/`)[1]);
     console.log('proxying', targetUrl);
 
-    const resp = await fetch(targetUrl);
-    const headers = new Headers(resp.headers);
+    // 转发原始请求头
+    const headers = new Headers(req.headers);
+    headers.delete('host');  // 删除 host 头，让 fetch 自动设置
 
+    let resp = await fetch(targetUrl, { 
+      method: req.method,
+      headers: headers,
+      body: req.method !== 'GET' && req.method !== 'HEAD' ? req : undefined,
+      redirect: 'manual'
+    });
+
+    // 处理重定向
     if ([301, 302, 303, 307, 308].includes(resp.status)) {
-      let location = resp.headers.get('location');
-      const newUrl = new URL(location, targetUrl);
-      headers.set('location', proxify(newUrl.href));
+      const location = resp.headers.get('location');
+      if (!location) {
+        throw new Error('Redirect response without Location header.');
+      }
 
-      res.writeHead(resp.status, Object.fromEntries(headers));
+      const newHeaders = new Headers(resp.headers);
+      newHeaders.set('location', proxify(location));
+
+      res.writeHead(resp.status, Object.fromEntries(newHeaders));
       res.end();
-    } else if (resp.headers.get('content-type') === 'application/vnd.apple.mpegurl') {
+      return;
+    }
+
+    // 处理所有响应，包括 206
+    res.writeHead(resp.status, Object.fromEntries(resp.headers));
+
+    // 对于 MPD 文件和 m3u8 文件，我们需要修改内容
+    const contentType = resp.headers.get('content-type');
+    if (contentType === 'application/dash+xml' || contentType === 'application/x-mpegURL') {
       let respText = await resp.text();
       respText = proxify(respText);
-
-      res.writeHead(200, { 'Content-Type': 'application/x-mpegURL' });
       res.end(respText);
     } else {
-      res.writeHead(resp.status, Object.fromEntries(headers));
+      // 对于其他内容（包括媒体段），直接转发
       resp.body.pipe(res);
     }
   } catch (error) {
