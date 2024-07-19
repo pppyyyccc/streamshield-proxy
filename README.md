@@ -6,7 +6,7 @@ StreamShield Proxy 是一个旨在解决由于IP问题无法直接播放来自 p
 
 ## 功能
 
-- **代理 4gtv.m3u Beesport.m3u mytvsuper.m3u**：使得在中国大陆可以访问原本无法访问的 四季和MytvSuper文件。如要正常收看MytvSuper请自行在pixman docker内添加自己的token。
+- **代理 4gtv.m3u Beesport.m3u mytvsuper.m3u**：使得在中国大陆可以访问原本无法访问的 四季和MytvSuper文件。如希望正常收看MytvSuper，请自行在pixman docker内配置添加token。
 - **集成 央视屏 中国移动 iTV 蜀小果 江苏移动魔百盒 TPTV**：集成了央视屏 中国移动 iTV 蜀小果 江苏移动魔百盒，以扩大内容访问范围。
 - **安全设置**：新增安全token，防止被扫描到白嫖。
 - **简化配置**：提供了一个简单的设置过程，使得配置流媒体解决方案更加容易。
@@ -64,10 +64,10 @@ VPS_HOST：你的 VPS 的 URL。也可以是 HTTP 或 HTTPS，可以是 IP 地�
 
 示例：http://2.2.2.2:4994 或 https://cc.cc.cc
 
-INCLUDE_MYTVSUPER="true" 是否要增加导入mytvsuper_tivimate.m3u， 不写这个值默认不导入（坑太多）
+INCLUDE_MYTVSUPER="true" 是否要增加导入mytvsuper_tivimate.m3u， 不写这个值默认不导入
 
 
-
+DEBUG="true" \\ 是否要开启DEBUG， 不写这个值默认不开启
 
 ## 部署示例
 
