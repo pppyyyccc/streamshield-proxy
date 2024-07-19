@@ -67,7 +67,7 @@ VPS_HOST：你的 VPS 的 URL。也可以是 HTTP 或 HTTPS，可以是 IP 地�
 INCLUDE_MYTVSUPER="true" 是否要增加导入mytvsuper_tivimate.m3u， 不写这个值默认不导入
 
 
-DEBUG="true" \\ 是否要开启DEBUG， 不写这个值默认不开启
+DEBUG="true"  是否要开启DEBUG， 不写这个值默认不开启
 
 ## 部署示例
 
