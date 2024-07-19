@@ -19,6 +19,8 @@ StreamShield Proxy 是一个旨在解决由于IP问题无法直接播放来自 p
 
 由于Mytvsuper使用mpd加密连接，连接过程比较繁琐，每一次iptv换台需要四倍于4gtv的时间，所以换台比较慢。
 
+Android环境下需使用https://github.com/FongMi/Release/raw/fongmi/apk/dev/mobile-python-armeabi_v7a.apk 支持mpd加密播放。
+
 ## 部署
 
 ### Docker 部署
