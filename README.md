@@ -57,11 +57,15 @@ ppyycc/streamshield-proxy:latest
 ## 定制环境变量
 
 变量	描述
-CUSTOM_DOMAIN	pixman 安装的 URL，不需附带 m3u 后缀，已包含 YSP 和 4GTV 等聚合。
-VPS_HOST	个人的 VPS URL，支持 HTTP/HTTPS，可以是 IP 地址或定制域名。
-INCLUDE_MYTVSUPER	是否启用 mytvsuper_tivimate.m3u 渠道加载，缺省不加载。
+CUSTOM_DOMAIN	已运行pixman docker的URL，不需附带 m3u 后缀，已包含 YSP 和 4GTV 等聚合。示例：http://1.1.1.1:5000 或 https://bb.bb.bb。
 
-示例：http://1.1.1.1:5000 或 https://bb.bb.bb。
+VPS_HOST	个人的 VPS HOST，支持 HTTP/HTTPS，可以是 IP 地址或定制域名。示例：http://2.2.2.2:4994 或 https://cc.cc.cc
+
+INCLUDE_MYTVSUPER="true"	是否启用 mytvsuper_tivimate.m3u 渠道加载，缺省不加载。
+
+DEBUG="true"  是否要开启DEBUG， 不写这个值默认不开启
+
+
 
 
 ## 部署案例
