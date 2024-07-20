@@ -1,52 +1,51 @@
-# StreamShield Proxy
+# StreamShield Proxy: 无缝流媒体播放解决方案
 
-## 概述
+## 项目简介
 
-StreamShield Proxy 是一个旨在解决由于IP问题无法直接播放来自 pixman.io 的 4gtv.m3u 等文件的项目。Cloudflare 的免费版也不能代理 TS流文件。因此，该项目使用个人 VPS（比如甲骨文的ARM机） 来代理和转发所需的流量，从而简化了流媒体配置过程，相比其他解决方案尤其家里没有卵路由环境或者不方便安装环境配置更简单。
+StreamShield Proxy 致力于解决因 IP 限制而无法直接播放 pixman.io 的 4gtv.m3u 等流媒体文件的问题。Cloudflare 免费版的流媒体代理功能缺失，因此此项目巧妙地利用个人 VPS（例如甲骨文的 ARM 服务器）作为代理，流畅转发所需流量，显著简化了流媒体播放的配置流程，尤其适用于家中无便捷路由或难以安装复杂配置环境的用户。
 
-## 功能
+## 核心功能
 
-- **代理 4gtv.m3u Beesport.m3u mytvsuper.m3u**：使得在IP被限制访问访问的情况下正常播放四季和MytvSuper。如希望正常收看MytvSuper，请自行在pixman docker内配置添加token。
-- **集成 央视屏 中国移动 iTV 蜀小果 江苏移动魔百盒 TPTV**：集成了央视屏 中国移动 iTV 蜀小果 江苏移动魔百盒，以扩大内容访问范围（直连）。
-- **安全设置**：新增安全token，防止被扫描到白嫖。
-- **简化配置**：提供了一个简单的设置过程，使得配置流媒体解决方案更加容易。
-- 支持arm64和amd64。
+- **智能代理：4gtv.m3u、Beesport.m3u、mytvsuper.m3u**
+  在 IP 受到限制的情况下，依然能够流畅播放四季与 MytvSuper。欲流畅观看 MytvSuper，需自行在 pixman Docker 环境下配置对应的凭证。
+- **内容聚合：央视屏、中国移动 iTV、蜀小果、江苏移动魔百盒、TPTV**（直连）
+  集聚各类热门内容，如央视节目、中国移动 iTV、蜀小果、江苏移动魔百盒等，拓宽内容访问范围。
+- **加固安全：新增安全 token**
+- 有效防止服务被未授权扫描利用。
+- **简化安装：轻松配置流媒体系统**
+  提供直观便捷的流媒体配置流程，极大降低了部署难度。
+- **兼容性优化**
+  支持 arm64 和 amd64 架构。
 
+## 发展现状
 
-## 当前状态
+最新版 StreamShield Proxy 已集成绝大部分 Pixman 渠道，除了 YouTube。
 
-该项目的最新版基本集成了Pixman大部分的频道除了youtube。
+由于 Mytvsuper 使用 mpd 加密技术进行连接，导致每次 IPTV 换台所耗费的时间约为 4gtv 的四倍，加重了换台等待感。
 
-由于Mytvsuper使用mpd加密连接，连接过程比较繁琐，每一次iptv换台需要四倍于4gtv的时间，所以换台比较慢。
+在 Android 环境下，需依赖 [https://github.com/FongMi/Release/tree/fongmi/apk/release](https://github.com/FongMi/Release/tree/fongmi/apk/release) 支持 mpd 加密解码播放。
 
-Android环境下需使用https://github.com/FongMi/Release/raw/fongmi/apk/dev/mobile-python-armeabi_v7a.apk 支持mpd加密播放。
+## Docker 部署指引
 
-## 部署
+1. **预置** Pixman Docker 镜像：
 
-### Docker 部署
+   [https://pixman.io/topics/17](https://pixman.io/topics/17)
 
-要使用 Docker 部署 StreamShield Proxy，请按照以下步骤操作：
+2. **加载** StreamShield Docker 镜像：
 
-0. **拉取 Pixman Docker 镜像**：
-
-https://pixman.io/topics/17
-
-1. **拉取 代理Docker 镜像**：
-
+   ```bash
    docker pull ppyycc/streamshield-proxy:latest
 
-2. **更新mytvsuper_tivimate.m3u 文件**：
+设置定时更新 mytvsuper_tivimate.m3u 文件：
+为自动化运行，每日早晚执行更新。或遵循 https://pixman.io/topics/17 手动调整。
+(crontab -l 2&gt;/dev/null | grep -v "docker exec pixman sh -c 'flask mytvsuper_tivimate'"; echo "0 5,17 * * * docker exec pixman sh -c 'flask mytvsuper_tivimate'") | crontab -
 
-   **每天更新mytvsuper m3u**：由于使用的是mytvsuper_tivimate.m3u作为源，所以需要在运行pixman docker的机器上自动更新此文件，下面命令每天早晚五点自动更新 mytvsuper_tivimate.m3u 文件
- 
-  (crontab -l 2>/dev/null | grep -v "docker exec pixman sh -c 'flask mytvsuper_tivimate'"; echo "0 5,17 * * * docker exec pixman sh -c 'flask mytvsuper_tivimate'") | crontab -
 
-或者自己手动加入crontab,详见https://pixman.io/topics/17
 
-  新增是否要导入mytvsuper_tivimate.m3u开关
+## 启动 Docker 容器
 
-## 运行 Docker 容器
-
+bash
+Copy Code
 docker run -d -p 4994:4994 --name streamshield-proxy \
 -e CUSTOM_DOMAIN="http://aa.aa:port" \
 -e VPS_HOST="http://your-custom-vps-host.com:port" \
@@ -55,67 +54,62 @@ docker run -d -p 4994:4994 --name streamshield-proxy \
 --restart always \
 ppyycc/streamshield-proxy:latest
 
-## 环境变量
+## 定制环境变量
+
+变量	描述
+CUSTOM_DOMAIN	pixman 安装的 URL，不需附带 m3u 后缀，已包含 YSP 和 4GTV 等聚合。
+VPS_HOST	个人的 VPS URL，支持 HTTP/HTTPS，可以是 IP 地址或定制域名。
+INCLUDE_MYTVSUPER	是否启用 mytvsuper_tivimate.m3u 渠道加载，缺省不加载。
+
+示例：http://1.1.1.1:5000 或 https://bb.bb.bb。
 
 
-CUSTOM_DOMAIN：pixman 安装的 URL（不包括 m3u 扩展名，因为它已经聚合了 YSP 和 4GTV）。可以是 HTTP 或 HTTPS，可以是 IP 地址或域名。
+## 部署案例
 
-示例：http://1.1.1.1:5000 或 https://bb.bb.bb
-
-
-
-VPS_HOST：你的 VPS 的 URL。也可以是 HTTP 或 HTTPS，可以是 IP 地址或域名。
-
-示例：http://2.2.2.2:4994 或 https://cc.cc.cc
-
-INCLUDE_MYTVSUPER="true" 是否要增加导入mytvsuper_tivimate.m3u， 不写这个值默认不导入
+仅使用 IP 地址部署：
 
 
-DEBUG="true"  是否要开启DEBUG， 不写这个值默认不开启
-
-## 部署示例
-
-
-### 使用 IP 地址：
 docker pull ppyycc/streamshield-proxy:latest
-
 docker run -d -p 8888:4994 --name streamshield-proxy \
 -e CUSTOM_DOMAIN="http://100.100.100.100:5000" \
 -e VPS_HOST="http://200.200.200.200:8888" \
 -e SECURITY_TOKEN="test11" \
--e INCLUDE_MYTVSUPER="true" \ 
+-e INCLUDE_MYTVSUPER="true" \
 --restart always \
 ppyycc/streamshield-proxy:latest
+访问地址：http://200.200.200.200:8888/test11，并已自动导入 mytvsuper_tivimate.m3u。
 
-你的访问地址是http://200.200.200.200:8888/test11 并且导入mytvsuper_tivimate.m3u
 
-### 使用域名和 HTTPS：
+搭配域名和 HTTPS 部署：
+
+bash
+Copy Code
 docker pull ppyycc/streamshield-proxy:latest
-
 docker run -d -p 444:4994 --name streamshield-proxy \
 -e CUSTOM_DOMAIN="https://pixman.aaaa.com" \
 -e VPS_HOST="https://iptv.bbbb.com" \
 -e SECURITY_TOKEN="test222" \
 --restart always \
 ppyycc/streamshield-proxy:latest
-
-你的访问地址是https://iptv.bbbb.com/test222 默认没有mytvsuper频道列表
-
-## 终端配置
-
-比如在TVBOX之类的直播配置中填入https://iptv.bbbb.com/testtoken 或者 http://200.200.200.200:8888/testtoken 便能播放聚合流媒体
-
-## 社区和支持
-
-如有关于进一步讨论、故障排除或社区参与的需求，请加入Pixman的 Telegram 群组：https://t.me/livednowgroup
+访问地址：https://iptv.bbbb.com/test222，默认不包含 mytvsuper 频道清单。
 
 
-## 贡献
+## 媒体终端配置
 
-欢迎贡献、提出问题和功能请求！如果您想贡献，请查看 问题页面。
+在直播配置中，如 影视，只需填入 https://iptv.bbbb.com/testtoken 或 http://200.200.200.200:8888/testtoken 即可实现流媒体播放。
 
 
-## 许可证
+## 社区互动与支持
 
-本项目采用 MIT 许可证。
+更多详情、问题解决或加群探讨，敬请加入 Pixman 的 Telegram 群组：https://t.me/livednowgroup。
+
+
+## 项目贡献
+
+欢迎代码提交、提出功能需求与错误汇报！有意向贡献者，请访问 问题页面，参与共建。
+
+
+## 使用协议
+
+本项目遵循 MIT 开源协议。
 ```
