@@ -66,7 +66,7 @@ ppyycc/streamshield-proxy:latest
 | DEBUG="true" | 是否要开启DEBUG， 不写这个扩展默认不开启。 |
 | SECURITY_TOKEN="testtoken" | 输入自己设置的安全token防止扫到端口被爆破。 |
 | chinam3u="true" | 是否要开启大陆电视台， 不写这个扩展默认不开启。 |
-| CUSTOM_M3U | 是否要开启自定义M3U，名字和pixman docker内一致。 |
+| CUSTOM_M3U=“test.m3u”| 是否要开倒入自定义M3U，名字和pixman docker内一致。 |
 | CUSTOM_M3U_PROXY="true" | 是否要用本程序代理流量，不写这个扩展默认默认不开启代理。 |
 | CUSTOM_M3U_PROXY_HOST | 写入这个m3u需要代理的host，方便程序识别并代理。 |
 
