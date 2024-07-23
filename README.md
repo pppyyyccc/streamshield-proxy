@@ -8,7 +8,7 @@ StreamShield Proxy 目的解决因 IP 限制而无法直接播放 pixman.io 的 
 
 - **智能代理：4gtv.m3u、Beesport.m3u、mytvsuper.m3u**
   在 IP 受到限制的情况下，依然能够流畅播放四季与 MytvSuper。欲流畅观看 MytvSuper，需自行在 pixman Docker 环境下配置对应的凭证。
-- **内容聚合：央视屏、中国移动 iTV、蜀小果、江苏移动魔百盒、TPTV**（直连）
+- **内容聚合：央视屏、中国移动 iTV、蜀小果、江苏移动魔百盒、TPTV**（直连）可以用开关确认是否要导入这些直连电视，默认不开启。
   集聚各类热门内容，如央视节目、中国移动 iTV、蜀小果、江苏移动魔百盒等，拓宽内容访问范围。
 - **加固安全：新增安全 token**
 - 有效防止服务被未授权扫描利用。
@@ -16,10 +16,12 @@ StreamShield Proxy 目的解决因 IP 限制而无法直接播放 pixman.io 的 
   提供直观便捷的流媒体配置流程，极大降低了部署难度。
 - **兼容性优化**
   支持 arm64 和 amd64 架构。
+- **支持自定义M3U导入**
+  需先在pixman docker内导入自定义M3U，由于没有需求，所以本人没有测试过这个功能，如有问题请在群内反馈。
 
 ## 发展现状
 
-最新版 StreamShield Proxy 已集成绝大部分 Pixman 渠道，除了 YouTube。
+最新版 StreamShield Proxy 已集成绝大部分 Pixman 渠道，并支持自定义M3U导入，除了 YouTube。
 
 由于 Mytvsuper 使用 mpd 加密技术进行连接，导致每次 IPTV 换台所耗费的时间约为 4gtv 的四倍，加重了换台等待感。
 
@@ -65,7 +67,13 @@ INCLUDE_MYTVSUPER="true"	是否启用 mytvsuper_tivimate.m3u 渠道加载，缺�
 
 DEBUG="true"  是否要开启DEBUG， 不写这个值默认不开启
 
+chinam3u="true"是否要开启大陆电视台， 不写这个值默认不开启
 
+CUSTOM_M3U="custom.m3u" 是否要开启自定义M3U，名字和pixman docker内一致
+
+CUSTOM_M3U_PROXY="true" 是否要用本程序代理流量，不写这个值默认不开启代理
+
+CUSTOM_M3U_PROXY_HOST="custom.m3u.proxy.host" 写入这个m3u需要代理的host方便程序识别并代理。
 
 
 ## 部署案例
@@ -79,9 +87,10 @@ docker run -d -p 8888:4994 --name streamshield-proxy \
 -e VPS_HOST="http://200.200.200.200:8888" \
 -e SECURITY_TOKEN="test11" \
 -e INCLUDE_MYTVSUPER="true" \
+-e chinam3u="true"
 --restart always \
 ppyycc/streamshield-proxy:latest
-访问地址：http://200.200.200.200:8888/test11，并已自动导入 mytvsuper_tivimate.m3u。
+访问地址：http://200.200.200.200:8888/test11，并已自动导入 mytvsuper_tivimate.m3u，并且能收看大陆电视台。
 
 
 搭配域名和 HTTPS 部署：
