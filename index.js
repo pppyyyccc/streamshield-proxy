@@ -1,21 +1,26 @@
 const http = require('http');
 const url = require('url');
 const fetch = require('node-fetch');
-const { Headers, Request } = require('node-fetch');  // 修正解构语法
+const { Headers, Request } = require('node-fetch');
+const { Transform, PassThrough } = require('stream');
 
-// 解析环境变量
+// Parse environment variables
 const CUSTOM_DOMAIN = process.env.CUSTOM_DOMAIN || 'default-domain.com';
 const SECURITY_TOKEN = process.env.SECURITY_TOKEN || 'test123';
 const VPS_HOST = process.env.VPS_HOST;
 const INCLUDE_MYTVSUPER = process.env.INCLUDE_MYTVSUPER === 'true';
-const DEBUG = process.env.DEBUG === 'true';  // 新增调试模式开关
+const DEBUG = process.env.DEBUG === 'true';
+const INCLUDE_CHINA_M3U = process.env.chinam3u === 'true';
+const CUSTOM_M3U = process.env.CUSTOM_M3U;
+const CUSTOM_M3U_PROXY = process.env.CUSTOM_M3U_PROXY === 'true';
+const CUSTOM_M3U_PROXY_HOST = process.env.CUSTOM_M3U_PROXY_HOST;
 
 if (!VPS_HOST) {
   console.error('Error: VPS_HOST environment variable is not set.');
   process.exit(1);
 }
 
-// 日志函数
+// Logging functions
 function logDebug(message) {
   if (DEBUG) {
     console.log(message);
@@ -26,7 +31,7 @@ function logInfo(message) {
   console.log(message);
 }
 
-// 生成URL
+// Generate URLs
 const FOUR_SEASONS_URL = `${CUSTOM_DOMAIN}/4gtv.m3u`;
 const BEESPORT_URL = `${CUSTOM_DOMAIN}/beesport.m3u`;
 const YSP_URL = `${CUSTOM_DOMAIN}/ysp.m3u`;
@@ -34,9 +39,10 @@ const SXG_URL = `${CUSTOM_DOMAIN}/sxg.m3u`;
 const ITV_PROXY_URL = `${CUSTOM_DOMAIN}/itv_proxy.m3u`;
 const TPTV_PROXY_URL = `${CUSTOM_DOMAIN}/tptv_proxy.m3u`;
 const MYTVSUPER_URL = `${CUSTOM_DOMAIN}/mytvsuper-tivimate.m3u`;
+const CUSTOM_M3U_URL = CUSTOM_M3U ? `${CUSTOM_DOMAIN}/${CUSTOM_M3U}` : null;
 const PROXY_DOMAIN = new URL(CUSTOM_DOMAIN).hostname;
 
-// 定义源地址，考虑环境变量 INCLUDE_MYTVSUPER
+// Define source addresses, considering environment variables
 const SRC = [
   {
     name: '四季',
@@ -53,25 +59,30 @@ const SRC = [
     url: BEESPORT_URL,
     mod: (noproxy) => noproxy ? identity : proxify
   },
-  {
+  INCLUDE_CHINA_M3U && {
     name: '央视频',
     url: YSP_URL
   },
-  {
+  INCLUDE_CHINA_M3U && {
     name: '蜀小果',
     url: SXG_URL
   },
-  {
+  INCLUDE_CHINA_M3U && {
     name: '中国移动 iTV 平台',
     url: ITV_PROXY_URL
   },
-  {
+  INCLUDE_CHINA_M3U && {
     name: '江苏移动魔百盒 TPTV',
     url: TPTV_PROXY_URL
+  },
+  CUSTOM_M3U && {
+    name: '自定义 M3U',
+    url: CUSTOM_M3U_URL,
+    mod: (noproxy) => noproxy ? identity : proxify
   }
 ].filter(Boolean);
 
-// 定义代理域名
+// Define proxy domains and include custom domains
 const PROXY_DOMAINS = [
   PROXY_DOMAIN,
   '[^/]+\\.hinet\\.net(:\\d+)?',
@@ -86,6 +97,10 @@ const PROXY_DOMAINS = [
   '[^/]+\\.beesport\\.livednow\\.com(:\\d+)?'
 ];
 
+if (CUSTOM_M3U_PROXY && CUSTOM_M3U_PROXY_HOST) {
+  PROXY_DOMAINS.push(CUSTOM_M3U_PROXY_HOST);
+}
+
 function identity(it) { return it; }
 
 function proxify(it) {
@@ -98,7 +113,7 @@ function proxify(it) {
 const server = http.createServer(async (req, res) => {
   logDebug(`Received request for: ${req.url}`);
 
-  // 处理 OPTIONS 请求
+  // Handle OPTIONS requests
   if (req.method === 'OPTIONS') {
     res.writeHead(200, {
       'Access-Control-Allow-Origin': '*',
@@ -116,11 +131,13 @@ const server = http.createServer(async (req, res) => {
     } else if (req.url.startsWith(`/${SECURITY_TOKEN}`)) {
       await handleList(req, res);
     } else {
-      res.writeHead(403, { 'Content-Type': 'text/plain' });
+      logDebug(`403 Forbidden: ${req.url}`);
+      res.writeHead(403, { 'Content-Type': 'text/plain', 'Connection': 'keep-alive', 'Keep-Alive': 'timeout=20' });
       res.end('Forbidden');
     }
   } else {
-    res.writeHead(403, { 'Content-Type': 'text/plain' });
+    logDebug(`403 Forbidden: ${req.url}`);
+    res.writeHead(403, { 'Content-Type': 'text/plain', 'Connection': 'keep-alive', 'Keep-Alive': 'timeout=20' });
     res.end('Forbidden');
   }
 });
@@ -168,9 +185,8 @@ async function handleProxy(req, res) {
     const targetUrl = new URL(urlParts[1]);
     logDebug('proxying URL', targetUrl);
 
-    // 转发原始请求头
     const headers = new Headers(req.headers);
-    headers.delete('host');  // 删除 host 头，让 fetch 自动设置
+    headers.delete('host');
 
     const proxyReq = new Request(targetUrl, {
       method: req.method,
@@ -181,7 +197,7 @@ async function handleProxy(req, res) {
 
     const resp = await fetch(proxyReq);
 
-    // 处理重定向
+    // Handle redirects
     if ([301, 302, 303, 307, 308].includes(resp.status)) {
       const location = resp.headers.get('location');
       if (!location) {
@@ -196,23 +212,33 @@ async function handleProxy(req, res) {
       return;
     }
 
-    // 获取内容类型
     const contentType = resp.headers.get('content-type');
-    
-    // 如果是特定类型，修改其中的 URL
+
     if (contentType === 'application/dash+xml' || contentType === 'application/x-mpegURL' || contentType === 'application/vnd.apple.mpegurl') {
-      let respText = await resp.text();
-      logDebug(`Original content: \n${respText}\n`);
-      respText = proxify(respText);
-      logDebug(`Proxied content: \n${respText}\n`);
+      // Buffer response body to handle data split into multiple TCP packets
+      let bodyChunks = [];
+      resp.body.on('data', chunk => bodyChunks.push(chunk));
+      resp.body.on('end', () => {
+        let body = Buffer.concat(bodyChunks).toString();
+        logDebug(`Original content: \n${body}\n`);
+        body = proxify(body);
+        logDebug(`Proxied content: \n${body}\n`);
+        res.writeHead(resp.status, {
+          ...Object.fromEntries(resp.headers),
+          'content-length': Buffer.byteLength(body)
+        });
+        res.end(body);
+      });
+    } else if (contentType === 'video/MP2T' || contentType === 'application/mp4' || contentType === 'application/dash+xml') {
+      // For media content, pipe directly to client without processing
       res.writeHead(resp.status, Object.fromEntries(resp.headers));
-      res.end(respText);
+      resp.body.pipe(res);
     } else {
-      // 对于其他内容（包括媒体段），直接转发
+      // For other content, forward as is
       res.writeHead(resp.status, Object.fromEntries(resp.headers));
       resp.body.pipe(res);
     }
-    
+
     logInfo(`Request for ${targetUrl.href} succeeded with status ${resp.status}`);
   } catch (error) {
     console.error('Error in handleProxy:', error.message);
