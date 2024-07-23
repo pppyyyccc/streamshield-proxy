@@ -1,4 +1,4 @@
-# StreamShield Proxy: 无缝流媒体播放解决方案
+# StreamShield Proxy: pixman无缝流媒体播放代理方案 1.0
 
 ## 项目简介
 
