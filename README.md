@@ -46,8 +46,6 @@ StreamShield Proxy 目的解决因 IP 限制而无法直接播放 pixman.io 的 
 
 ## 启动 Docker 容器
 
-bash
-Copy Code
 docker run -d -p 4994:4994 --name streamshield-proxy \
 -e CUSTOM_DOMAIN="http://aa.aa:port" \
 -e VPS_HOST="http://your-custom-vps-host.com:port" \
