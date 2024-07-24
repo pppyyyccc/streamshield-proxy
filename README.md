@@ -46,13 +46,14 @@ StreamShield Proxy 目的解决因 IP 限制而无法直接播放 pixman.io 的 
 
 ## 启动 Docker 容器
 
-docker run -d -p 4994:4994 --name streamshield-proxy \
--e CUSTOM_DOMAIN="http://aa.aa:port" \
--e VPS_HOST="http://your-custom-vps-host.com:port" \
--e SECURITY_TOKEN="testtoken" \
--e INCLUDE_MYTVSUPER="true" \
---restart always \
-ppyycc/streamshield-proxy:latest
+docker run -d -p 8888:4994 --name streamshield-proxy \
+    -e CUSTOM_DOMAIN="http://100.100.100.100:5000" \
+    -e VPS_HOST="http://200.200.200.200:8888" \
+    -e SECURITY_TOKEN="test11" \
+    -e INCLUDE_MYTVSUPER="true" \
+    -e chinam3u="true" \
+    --restart always \
+    ppyycc/streamshield-proxy:latest 
 
 ## 定制环境变量
 
@@ -74,7 +75,7 @@ ppyycc/streamshield-proxy:latest
 仅使用 IP 地址部署：
 
 
-docker pull ppyycc/streamshield-proxy:latest
+docker pull ppyycc/streamshield-proxy:latest \
 docker run -d -p 8888:4994 --name streamshield-proxy \
 -e CUSTOM_DOMAIN="http://100.100.100.100:5000" \
 -e VPS_HOST="http://200.200.200.200:8888" \
@@ -90,7 +91,7 @@ ppyycc/streamshield-proxy:latest
 
 bash
 Copy Code
-docker pull ppyycc/streamshield-proxy:latest
+docker pull ppyycc/streamshield-proxy:latest \
 docker run -d -p 444:4994 --name streamshield-proxy \
 -e CUSTOM_DOMAIN="https://pixman.aaaa.com" \
 -e VPS_HOST="https://iptv.bbbb.com" \
