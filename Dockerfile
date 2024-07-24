@@ -1,20 +1,26 @@
-# Dockerfile
-FROM node:14
+# Use an official Node.js runtime as the base image
+FROM node:18-alpine
 
-# 创建应用工作目录
+# Set the working directory in the container
 WORKDIR /usr/src/app
 
-# 复制 package.json 和 package-lock.json
+# Copy package.json and package-lock.json to the working directory
 COPY package*.json ./
 
-# 安装依赖
+# Install the application dependencies
 RUN npm install
 
-# 复制应用代码
+# Copy the application code to the working directory
 COPY . .
 
-# 暴露端口
+# Expose the port the app runs on
 EXPOSE 4994
 
-# 启动应用
+# Set Node.js to run in production mode
+ENV NODE_ENV=production
+
+# Disable Node.js stdout buffering
+#ENV NODE_OPTIONS=--no-buffering
+
+# Define the command to run the application
 CMD ["node", "index.js"]

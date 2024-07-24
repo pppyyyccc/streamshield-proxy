@@ -3,6 +3,7 @@ const url = require('url');
 const fetch = require('node-fetch');
 const { Headers, Request } = require('node-fetch');
 const { Transform, PassThrough } = require('stream');
+const LRU = require('lru-cache');
 
 // Parse environment variables
 const CUSTOM_DOMAIN = process.env.CUSTOM_DOMAIN || 'default-domain.com';
@@ -24,11 +25,18 @@ if (!VPS_HOST) {
 function logDebug(message) {
   if (DEBUG) {
     console.log(message);
+    console.log('\n'); // Add a newline to force flush
   }
 }
 
 function logInfo(message) {
   console.log(message);
+  console.log('\n'); // Add a newline to force flush
+}
+
+function logError(message) {
+  console.error(message);
+  console.error('\n'); // Add a newline to force flush
 }
 
 // Generate URLs
@@ -110,6 +118,18 @@ function proxify(it) {
   return it;
 }
 
+// Create LRU cache for m3u content
+const m3uCache = new LRU({
+  max: 100,
+  maxAge: 1000 * 60 * 5 // 5 minutes
+});
+
+// Create LRU cache for proxy responses
+const proxyCache = new LRU({
+  max: 1000,
+  maxAge: 1000 * 60 * 5 // 5 minutes
+});
+
 const server = http.createServer(async (req, res) => {
   logDebug(`Received request for: ${req.url}`);
 
@@ -143,6 +163,15 @@ const server = http.createServer(async (req, res) => {
 });
 
 async function handleList(req, res) {
+  const cacheKey = req.url;
+  const cachedContent = m3uCache.get(cacheKey);
+
+  if (cachedContent) {
+    res.writeHead(200, { 'Content-Type': 'application/x-mpegURL' });
+    res.end(cachedContent);
+    return;
+  }
+
   let text = `#EXTM3U\n#EXTM3U x-tvg-url="https://assets.livednow.com/epg.xml"\n\n`;
   const REQ = SRC.map(src => ({
     ...src,
@@ -171,6 +200,7 @@ async function handleList(req, res) {
     }
   }
 
+  m3uCache.set(cacheKey, text);
   res.writeHead(200, { 'Content-Type': 'application/x-mpegURL' });
   res.end(text);
 }
@@ -214,21 +244,32 @@ async function handleProxy(req, res) {
 
     const contentType = resp.headers.get('content-type');
 
-    if (contentType === 'application/dash+xml' || contentType === 'application/x-mpegURL' || contentType === 'application/vnd.apple.mpegurl') {
-      // Buffer response body to handle data split into multiple TCP packets
-      let bodyChunks = [];
-      resp.body.on('data', chunk => bodyChunks.push(chunk));
-      resp.body.on('end', () => {
-        let body = Buffer.concat(bodyChunks).toString();
-        logDebug(`Original content: \n${body}\n`);
-        body = proxify(body);
-        logDebug(`Proxied content: \n${body}\n`);
-        res.writeHead(resp.status, {
-          ...Object.fromEntries(resp.headers),
-          'content-length': Buffer.byteLength(body)
-        });
-        res.end(body);
+    if (contentType === 'application/vnd.apple.mpegurl') {
+      // Handle m3u8 playlists
+      const body = await resp.text();
+      const lines = body.split('\n');
+      const processedLines = lines.map(line => {
+        if (line.startsWith('http://') || line.startsWith('https://')) {
+          return proxify(line);
+        }
+        return line;
       });
+      const processedBody = processedLines.join('\n');
+
+      res.writeHead(resp.status, {
+        ...Object.fromEntries(resp.headers),
+        'content-length': Buffer.byteLength(processedBody)
+      });
+      res.end(processedBody);
+    } else if (contentType === 'application/dash+xml' || contentType === 'application/x-mpegURL') {
+      const body = await resp.text();
+      const proxiedBody = proxify(body);
+
+      res.writeHead(resp.status, {
+        ...Object.fromEntries(resp.headers),
+        'content-length': Buffer.byteLength(proxiedBody)
+      });
+      res.end(proxiedBody);
     } else if (contentType === 'video/MP2T' || contentType === 'application/mp4' || contentType === 'application/dash+xml') {
       // For media content, pipe directly to client without processing
       res.writeHead(resp.status, Object.fromEntries(resp.headers));
@@ -241,7 +282,7 @@ async function handleProxy(req, res) {
 
     logInfo(`Request for ${targetUrl.href} succeeded with status ${resp.status}`);
   } catch (error) {
-    console.error('Error in handleProxy:', error.message);
+    logError(`Error in handleProxy: ${error.message}`);
     res.writeHead(500, { 'Content-Type': 'text/plain' });
     res.end('Internal Server Error');
   }
