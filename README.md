@@ -1,4 +1,4 @@
-# StreamShield Proxy: pixman无缝流媒体播放代理方案 1.0
+# StreamShield Proxy: pixman无缝流媒体播放代理方案
 
 ## 项目简介
 
@@ -6,7 +6,7 @@ StreamShield Proxy 目的解决因 IP 限制而无法直接播放 pixman.io 的 
 
 ## 核心功能
 
-- **智能代理：4gtv.m3u、Beesport.m3u、mytvsuper.m3u**
+- **智能代理：4gtv.m3u、Beesport.m3u、mytvsuper.m3u thetv**
   在 IP 受到限制的情况下，依然能够流畅播放四季与 MytvSuper。欲流畅观看 MytvSuper，需自行在 pixman Docker 环境下配置对应的凭证。
 - **内容聚合：央视屏、中国移动 iTV、蜀小果、江苏移动魔百盒、TPTV**（直连）可以用开关确认是否要导入这些直连电视，默认不开启。
   集聚各类热门内容，如央视节目、中国移动 iTV、蜀小果、江苏移动魔百盒等，拓宽内容访问范围。
@@ -24,6 +24,9 @@ StreamShield Proxy 目的解决因 IP 限制而无法直接播放 pixman.io 的 
 最新版 StreamShield Proxy 已集成绝大部分 Pixman 渠道，并支持自定义M3U导入，除了 YouTube。
 
 由于 Mytvsuper 使用 mpd 加密技术进行连接，导致每次 IPTV 换台所耗费的时间约为 4gtv 的四倍，加重了换台等待感。
+
+自动转换TheTV 频道列表为Tivimate 支持的格式。每天早晚 5:00  17:00 脚本启动时立即运行一次
+
 
 在 Android 环境下，需依赖 [https://github.com/FongMi/Release/tree/fongmi/apk/release](https://github.com/FongMi/Release/tree/fongmi/apk/release) 支持 mpd 加密解码播放。
 
