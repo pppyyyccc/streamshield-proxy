@@ -4,6 +4,8 @@ const fetch = require('node-fetch');
 const { Headers, Request } = require('node-fetch');
 const { Transform, PassThrough } = require('stream');
 const LRU = require('lru-cache');
+const fs = require('fs');
+const path = require('path');
 
 // Parse environment variables
 const CUSTOM_DOMAIN = process.env.CUSTOM_DOMAIN || 'default-domain.com';
@@ -63,6 +65,11 @@ const SRC = [
     mod: (noproxy) => noproxy ? identity : proxify
   },
   {
+    name: 'TheTV',
+    url: `${CUSTOM_DOMAIN}/thetv-tivimate.m3u`,
+    mod: (noproxy) => noproxy ? identity : proxify
+  },
+  {
     name: 'Beesport 直播源',
     url: BEESPORT_URL,
     mod: (noproxy) => noproxy ? identity : proxify
@@ -102,7 +109,8 @@ const PROXY_DOMAINS = [
   '[^/]+\\.ofiii\\.com(:\\d+)?',
   '[^/]+\\.youtube\\.com(:\\d+)?',
   '[^/]+\\.mytvsuper\\.com(:\\d+)?',
-  '[^/]+\\.beesport\\.livednow\\.com(:\\d+)?'
+  '[^/]+\\.beesport\\.livednow\\.com(:\\d+)?',
+  '[^/]+\\.thetvapp\\.to(:\\d+)?'
 ];
 
 if (CUSTOM_M3U_PROXY && CUSTOM_M3U_PROXY_HOST) {
@@ -127,7 +135,7 @@ const m3uCache = new LRU({
 // Create LRU cache for proxy responses
 const proxyCache = new LRU({
   max: 1000,
-  maxAge: 1000 * 60 * 5 // 5 minutes
+  maxAge: 1000 * 60 * 1 // 1 minutes
 });
 
 const server = http.createServer(async (req, res) => {
@@ -175,12 +183,23 @@ async function handleList(req, res) {
   let text = `#EXTM3U\n#EXTM3U x-tvg-url="https://assets.livednow.com/epg.xml"\n\n`;
   const REQ = SRC.map(src => ({
     ...src,
-    response: fetch(src.url)
+    response: src.name === 'TheTV' ? null : fetch(src.url)
   }));
 
   for (const src of REQ) {
-    const resp = await src.response;
-    const respText = await resp.text();
+    let respText;
+    if (src.name === 'TheTV') {
+      try {
+        respText = fs.readFileSync(path.join(__dirname, 'thetv-tivimate.m3u'), 'utf8');
+      } catch (error) {
+        logError(`Error reading thetv-tivimate.m3u: ${error}`);
+        continue;
+      }
+    } else {
+      const resp = await src.response;
+      respText = await resp.text();
+    }
+    
     let channels = respText.split(/^#EXT/gm).map(it => '#EXT' + it).filter(it => it.startsWith('#EXTINF'));
 
     if (src.filter) {
