@@ -1,36 +1,29 @@
-# StreamShield Proxy: pixman无缝流媒体播放代理方案
+# StreamShield Proxy: pixman 无缝流媒体播放代理方案
 
-## 项目简介
+## 简介
 
-StreamShield Proxy 目的解决因 IP 限制而无法直接播放 pixman.io 的 4gtv.m3u 等流媒体文件的问题。Cloudflare 免费版的流媒体代理功能缺失以及封号危险，因此此项目利用个人 VPS（例如甲骨文的 ARM 服务器）作为代理，流畅转发所需流量，显著简化了流媒体播放的配置流程，尤其适用于家中无便捷路由或难以安装复杂配置环境的用户。
+StreamShield Proxy 的目标是解决因 IP 限制而无法直接播放 pixman.io 上的 4gtv.m3u 等流媒体文件的问题。Cloudflare 免费版的流媒体代理功能缺失，并且存在封号风险，因此本项目利用个人 VPS（例如甲骨文的 ARM 服务器）作为代理，流畅转发所需流量，显著简化了流媒体播放的配置流程。它尤其适用于家中没有便捷路由器或难以安装复杂配置环境的用户。
 
 ## 核心功能
 
-- **智能代理：4gtv.m3u、Beesport.m3u、mytvsuper.m3u thetv**
-  在 IP 受到限制的情况下，依然能够流畅播放四季与 MytvSuper。欲流畅观看 MytvSuper，需自行在 pixman Docker 环境下配置对应的凭证。
-- **内容聚合：央视屏、中国移动 iTV、蜀小果、江苏移动魔百盒、TPTV**（直连）可以用开关确认是否要导入这些直连电视，默认不开启。
-  集聚各类热门内容，如央视节目、中国移动 iTV、蜀小果、江苏移动魔百盒等，拓宽内容访问范围。
-- **加固安全：新增安全 token**
-  有效防止服务被未授权扫描利用。
-- **简化安装：轻松配置流媒体系统**
-  提供直观便捷的流媒体配置流程，极大降低了部署难度。
-- **兼容性优化**
-  支持 arm64 和 amd64 架构。
-- **支持自定义M3U导入**
-  需先在pixman docker内导入自定义M3U，由于没有需求，所以本人没有测试过这个功能，如有问题请在群内反馈。
+- **智能代理:** 支持 4gtv.m3u、Beesport.m3u、mytvsuper.m3u 和 TheTV。即使在 IP 受限的情况下，依然能够流畅播放四季和 MytvSuper。为了流畅观看 MytvSuper，您需要在 pixman Docker 环境中自行配置相应的凭据。
+- **内容聚合:** 集成央视屏、中国移动 iTV、蜀小果、江苏移动魔百盒和 TPTV（直连）。您可以通过开关选择是否要导入这些直连电视，默认不开启。聚合了各种热门内容，如央视节目、中国移动 iTV、蜀小果、江苏移动魔百盒等，扩展您的内容访问范围。
+- **加固安全:** 新增安全 token，有效防止服务被未授权扫描利用。
+- **简化安装:** 提供直观便捷的流媒体配置流程，极大降低了部署难度。
+- **兼容性优化:** 支持 arm64 和 amd64 架构。
+- **自定义 M3U 导入:** 您可以先在 pixman docker 中导入自定义 M3U。由于目前还没有相关需求，因此我还没有测试过这个功能，如果您遇到任何问题，请在社区反馈。
 
 ## 发展现状
 
-最新版 StreamShield Proxy 已集成绝大部分 Pixman 渠道，并支持自定义M3U导入，除了 YouTube。
+最新版 StreamShield Proxy 已集成绝大多数 Pixman 渠道，并支持自定义 M3U 导入，除了 YouTube。
 
-由于 Mytvsuper 使用 mpd 加密技术进行连接，导致每次 IPTV 换台所耗费的时间约为 4gtv 的四倍，加重了换台等待感。
+由于 Mytvsuper 使用 mpd 加密技术连接，每次 IPTV 换台的时间大约是 4gtv 的四倍，加重了换台等待感。
 
-自动转换TheTV 频道列表为Tivimate 支持的格式。每天早晚 5:00  17:00 脚本启动时立即运行一次
+自动转换 TheTV 频道列表为 Tivimate 支持的格式。每天早上 5:00 和晚上 17:00 以及脚本启动时，都会自动运行更新。
 
+在 Android 环境下，您需要使用 [https://github.com/FongMi/Release/tree/fongmi/apk/release](https://github.com/FongMi/Release/tree/fongmi/apk/release) 支持 mpd 加密解码播放。
 
-在 Android 环境下，需依赖 [https://github.com/FongMi/Release/tree/fongmi/apk/release](https://github.com/FongMi/Release/tree/fongmi/apk/release) 支持 mpd 加密解码播放。
-
-## Docker 部署指引
+## Docker 部署指南
 
 1. **预置** Pixman Docker 镜像：
 
