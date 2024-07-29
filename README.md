@@ -57,12 +57,12 @@ docker run -d -p 8888:4994 --name streamshield-proxy \
 | --- | --- |
 | CUSTOM_DOMAIN | 已运行pixman docker的URL，不需附带 m3u 后缀，已包含 YSP 和 4GTV 等聚合。示例：http://1.1.1.1:5000 或 https://bb.bb.bb |
 | VPS_HOST | 个人的 VPS HOST，支持 HTTP/HTTPS，可以是 IP 地址或定制域名。示例：http://2.2.2.2:4994 或 https://cc.cc.cc |
-| INCLUDE_MYTVSUPER="true" | 是否启用 mytvsuper_tivimate.m3u 渠道加载，缺省不加载。 |
+| INCLUDE_MYTVSUPER="true"/"free" | 是否启用 mytvsuper_tivimate.m3u 渠道加载，缺省不加载。有自己的key就用ture，没有key就用free看12个免费电视台 |
 | DEBUG="true" | 是否要开启DEBUG， 不写这个扩展默认不开启。 |
 | SECURITY_TOKEN="testtoken" | 输入自己设置的安全token防止扫到端口被爆破。 |
 | chinam3u="true" | 是否要开启大陆电视台， 不写这个扩展默认不开启。 |
 | CUSTOM_M3U=“test.m3u”| 是否要开倒入自定义M3U，名字和pixman docker内一致。 |
-| CUSTOM_M3U_PROXY="true"/"free" | 是否要用本程序代理流量，不写这个扩展默认默认不开启代理。有自己的key就用ture，没有key就用free看12个免费电视台 |
+| CUSTOM_M3U_PROXY="true" | 是否要用本程序代理流量，不写这个扩展默认默认不开启代理。 |
 | CUSTOM_M3U_PROXY_HOST | 写入这个m3u需要代理的host，方便程序识别并代理。 |
 
 
