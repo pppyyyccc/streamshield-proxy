@@ -11,7 +11,7 @@ const path = require('path');
 const CUSTOM_DOMAIN = process.env.CUSTOM_DOMAIN || 'default-domain.com';
 const SECURITY_TOKEN = process.env.SECURITY_TOKEN || 'test123';
 const VPS_HOST = process.env.VPS_HOST;
-const INCLUDE_MYTVSUPER = process.env.INCLUDE_MYTVSUPER === 'true';
+const INCLUDE_MYTVSUPER = process.env.INCLUDE_MYTVSUPER;
 const DEBUG = process.env.DEBUG === 'true';
 const INCLUDE_CHINA_M3U = process.env.chinam3u === 'true';
 const CUSTOM_M3U = process.env.CUSTOM_M3U;
@@ -59,7 +59,12 @@ const SRC = [
     url: FOUR_SEASONS_URL,
     mod: (noproxy) => noproxy ? identity : proxify
   },
-  INCLUDE_MYTVSUPER && {
+  INCLUDE_MYTVSUPER === 'free' && {
+    name: 'MytvSuper Free',
+    url: 'mytvfree.m3u',
+    mod: (noproxy) => noproxy ? identity : proxify
+  },
+  INCLUDE_MYTVSUPER === 'true' && {
     name: 'MytvSuper 直播源',
     url: MYTVSUPER_URL,
     mod: (noproxy) => noproxy ? identity : proxify
@@ -183,7 +188,7 @@ async function handleList(req, res) {
   let text = `#EXTM3U\n#EXTM3U x-tvg-url="https://assets.livednow.com/epg.xml"\n\n`;
   const REQ = SRC.map(src => ({
     ...src,
-    response: src.name === 'TheTV' ? null : fetch(src.url)
+    response: src.name === 'TheTV' || src.name === 'MytvSuper Free' ? null : fetch(src.url)
   }));
 
   for (const src of REQ) {
@@ -193,6 +198,13 @@ async function handleList(req, res) {
         respText = fs.readFileSync(path.join(__dirname, 'thetv-tivimate.m3u'), 'utf8');
       } catch (error) {
         logError(`Error reading thetv-tivimate.m3u: ${error}`);
+        continue;
+      }
+    } else if (src.name === 'MytvSuper Free') {
+      try {
+        respText = fs.readFileSync(path.join(__dirname, 'mytvfree.m3u'), 'utf8');
+      } catch (error) {
+        logError(`Error reading mytvfree.m3u: ${error}`);
         continue;
       }
     } else {
