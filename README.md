@@ -19,8 +19,6 @@ StreamShield Proxy 的目标是解决因 IP 限制而无法直接播放 pixman.i
 
 由于 Mytvsuper 使用 mpd 加密技术连接，每次 IPTV 换台的时间大约是 4gtv 的四倍，加重了换台等待感。
 
-自动转换 TheTV 频道列表为 Tivimate 支持的格式。每天早上 5:00 和晚上 17:00 以及脚本启动时，都会自动运行更新。
-
 在 Android 环境下，您需要使用 [https://github.com/FongMi/Release/tree/fongmi/apk/release](https://github.com/FongMi/Release/tree/fongmi/apk/release) 支持 mpd 加密解码播放。
 
 ## Docker 部署指南
