@@ -4,8 +4,7 @@ const fetch = require('node-fetch');
 const { Headers, Request } = require('node-fetch');
 const { Transform, PassThrough } = require('stream');
 const LRU = require('lru-cache');
-const fs = require('fs');
-const path = require('path');
+const fs = require('fs').promises;
 
 // Parse environment variables
 const CUSTOM_DOMAIN = process.env.CUSTOM_DOMAIN || 'default-domain.com';
@@ -49,6 +48,8 @@ const SXG_URL = `${CUSTOM_DOMAIN}/sxg.m3u`;
 const ITV_PROXY_URL = `${CUSTOM_DOMAIN}/itv_proxy.m3u`;
 const TPTV_PROXY_URL = `${CUSTOM_DOMAIN}/tptv_proxy.m3u`;
 const MYTVSUPER_URL = `${CUSTOM_DOMAIN}/mytvsuper-tivimate.m3u`;
+const THETV_URL = `${CUSTOM_DOMAIN}/thetv.m3u`;
+const MYTVFREE_URL = INCLUDE_MYTVSUPER === 'free' ? './mytvfree.m3u' : null;
 const CUSTOM_M3U_URL = CUSTOM_M3U ? `${CUSTOM_DOMAIN}/${CUSTOM_M3U}` : null;
 const PROXY_DOMAIN = new URL(CUSTOM_DOMAIN).hostname;
 
@@ -61,8 +62,9 @@ const SRC = [
   },
   INCLUDE_MYTVSUPER === 'free' && {
     name: 'MytvSuper Free',
-    url: 'mytvfree.m3u',
-    mod: (noproxy) => noproxy ? identity : proxify
+    url: MYTVFREE_URL,
+    mod: (noproxy) => noproxy ? identity : proxify,
+    local: true
   },
   INCLUDE_MYTVSUPER === 'true' && {
     name: 'MytvSuper 直播源',
@@ -71,7 +73,7 @@ const SRC = [
   },
   {
     name: 'TheTV',
-    url: `${CUSTOM_DOMAIN}/thetv-tivimate.m3u`,
+    url: THETV_URL,
     mod: (noproxy) => noproxy ? identity : proxify
   },
   {
@@ -115,7 +117,10 @@ const PROXY_DOMAINS = [
   '[^/]+\\.youtube\\.com(:\\d+)?',
   '[^/]+\\.mytvsuper\\.com(:\\d+)?',
   '[^/]+\\.beesport\\.livednow\\.com(:\\d+)?',
-  '[^/]+\\.thetvapp\\.to(:\\d+)?'
+  '[^/]+\\.thetvapp\\.to(:\\d+)?',
+  '[^/]+\\.pki\\.goog(:\\d+)?',
+  '[^/]+\\.digicert\\.com(:\\d+)?',
+  '[^/]+\\.v2h-cdn\\.com(:\\d+)?'
 ];
 
 if (CUSTOM_M3U_PROXY && CUSTOM_M3U_PROXY_HOST) {
@@ -126,7 +131,8 @@ function identity(it) { return it; }
 
 function proxify(it) {
   for (const dom of PROXY_DOMAINS) {
-    it = it.replace(new RegExp('https?://' + dom, 'g'), `${VPS_HOST}/${SECURITY_TOKEN}/proxy/$&`);
+    const regex = new RegExp(`https?://${dom}[^\\s"']*`, 'g');
+    it = it.replace(regex, (match) => `${VPS_HOST}/${SECURITY_TOKEN}/proxy/${match}`);
   }
   return it;
 }
@@ -188,46 +194,38 @@ async function handleList(req, res) {
   let text = `#EXTM3U\n#EXTM3U x-tvg-url="https://assets.livednow.com/epg.xml"\n\n`;
   const REQ = SRC.map(src => ({
     ...src,
-    response: src.name === 'TheTV' || src.name === 'MytvSuper Free' ? null : fetch(src.url)
+    response: src.local ? null : fetch(src.url)
   }));
 
   for (const src of REQ) {
-    let respText;
-    if (src.name === 'TheTV') {
-      try {
-        respText = fs.readFileSync(path.join(__dirname, 'thetv-tivimate.m3u'), 'utf8');
-      } catch (error) {
-        logError(`Error reading thetv-tivimate.m3u: ${error}`);
-        continue;
+    try {
+      let respText;
+      if (src.local) {
+        respText = await fs.readFile(src.url, 'utf8');
+      } else {
+        const resp = await src.response;
+        respText = await resp.text();
       }
-    } else if (src.name === 'MytvSuper Free') {
-      try {
-        respText = fs.readFileSync(path.join(__dirname, 'mytvfree.m3u'), 'utf8');
-      } catch (error) {
-        logError(`Error reading mytvfree.m3u: ${error}`);
-        continue;
+
+      let channels = respText.split(/^#EXT/gm).map(it => '#EXT' + it).filter(it => it.startsWith('#EXTINF'));
+
+      if (src.filter) {
+        const beforeLen = channels.length;
+        channels = channels.filter(src.filter);
+        const afterLen = channels.length;
+        logDebug(`filter ${src.name} ${beforeLen} -> ${afterLen}`);
       }
-    } else {
-      const resp = await src.response;
-      respText = await resp.text();
-    }
-    
-    let channels = respText.split(/^#EXT/gm).map(it => '#EXT' + it).filter(it => it.startsWith('#EXTINF'));
 
-    if (src.filter) {
-      const beforeLen = channels.length;
-      channels = channels.filter(src.filter);
-      const afterLen = channels.length;
-      logDebug(`filter ${src.name} ${beforeLen} -> ${afterLen}`);
-    }
+      if (src.mod) {
+        const noproxy = req.url.indexOf('noproxy') > -1;
+        channels = channels.map(src.mod(noproxy));
+      }
 
-    if (src.mod) {
-      const noproxy = req.url.indexOf('noproxy') > -1;
-      channels = channels.map(src.mod(noproxy));
-    }
-
-    for (const chan of channels) {
-      text += chan;
+      for (const chan of channels) {
+        text += chan;
+      }
+    } catch (error) {
+      logError(`Error fetching or processing ${src.name}: ${error}`);
     }
   }
 
@@ -275,24 +273,8 @@ async function handleProxy(req, res) {
 
     const contentType = resp.headers.get('content-type');
 
-    if (contentType === 'application/vnd.apple.mpegurl') {
+    if (contentType === 'application/vnd.apple.mpegurl' || contentType === 'application/x-mpegURL') {
       // Handle m3u8 playlists
-      const body = await resp.text();
-      const lines = body.split('\n');
-      const processedLines = lines.map(line => {
-        if (line.startsWith('http://') || line.startsWith('https://')) {
-          return proxify(line);
-        }
-        return line;
-      });
-      const processedBody = processedLines.join('\n');
-
-      res.writeHead(resp.status, {
-        ...Object.fromEntries(resp.headers),
-        'content-length': Buffer.byteLength(processedBody)
-      });
-      res.end(processedBody);
-    } else if (contentType === 'application/dash+xml' || contentType === 'application/x-mpegURL') {
       const body = await resp.text();
       const proxiedBody = proxify(body);
 
@@ -301,12 +283,17 @@ async function handleProxy(req, res) {
         'content-length': Buffer.byteLength(proxiedBody)
       });
       res.end(proxiedBody);
-    } else if (contentType === 'video/MP2T' || contentType === 'application/mp4' || contentType === 'application/dash+xml') {
-      // For media content, pipe directly to client without processing
-      res.writeHead(resp.status, Object.fromEntries(resp.headers));
-      resp.body.pipe(res);
+    } else if (contentType === 'application/dash+xml') {
+      const body = await resp.text();
+      const proxiedBody = proxify(body);
+
+      res.writeHead(resp.status, {
+        ...Object.fromEntries(resp.headers),
+        'content-length': Buffer.byteLength(proxiedBody)
+      });
+      res.end(proxiedBody);
     } else {
-      // For other content, forward as is
+      // For other content, pipe directly to client without processing
       res.writeHead(resp.status, Object.fromEntries(resp.headers));
       resp.body.pipe(res);
     }

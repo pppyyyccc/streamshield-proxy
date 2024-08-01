@@ -21,7 +21,6 @@ COPY . .
 
 # 设置 cron 任务
 RUN echo "0 5,17 * * * python3 /app/convert_mytvfree.py" > /etc/cron.d/mytvfree-cron
-RUN echo "0 5,17 * * * python3 /app/convert_thetv.py" >> /etc/cron.d/mytvfree-cron
 RUN chmod 0644 /etc/cron.d/mytvfree-cron
 RUN crontab /etc/cron.d/mytvfree-cron
 
@@ -29,7 +28,6 @@ RUN crontab /etc/cron.d/mytvfree-cron
 RUN echo "#!/bin/sh" > /app/start.sh
 RUN echo "cron" >> /app/start.sh
 RUN echo "python3 /app/convert_mytvfree.py &" >> /app/start.sh
-RUN echo "python3 /app/convert_thetv.py &" >> /app/start.sh
 RUN echo "node index.js" >> /app/start.sh
 RUN chmod +x /app/start.sh
 
