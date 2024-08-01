@@ -2,11 +2,11 @@
 
 ## 简介
 
-StreamShield Proxy 的目标是解决因 IP 限制而无法直接播放 pixman.io 上的 4gtv.m3u 等流媒体文件的问题。Cloudflare 免费版的流媒体代理功能缺失，并且存在封号风险，因此本项目利用个人 VPS（例如甲骨文的 ARM 服务器）作为代理，流畅转发所需流量，显著简化了流媒体播放的配置流程。它尤其适用于家中没有便捷路由器或难以安装复杂配置环境的用户。
+StreamShield Proxy 的目标是解决因 IP 限制而无法直接播放 pixman.io 上的 4gtv.m3u 等流媒体文件的问题。Cloudflare 免费版的流媒体代理功能缺失，并且存在封号风险，因此本项目利用个人 VPS（例如甲骨文的 ARM 服务器）作为代理，流畅转发所需流量，显著简化了流媒体播放的配置流程。它尤其适用于家中没有卵路由器或难以安装复杂配置环境的用户。
 
 ## 核心功能
 
-- **智能代理:** 支持 4gtv.m3u、Beesport.m3u、mytvsuper.m3u 和 TheTV。即使在 IP 受限的情况下，依然能够流畅播放四季和 MytvSuper。为了流畅观看 MytvSuper，您需要在 pixman Docker 环境中自行配置相应的凭据。
+- **智能代理:** 支持 4gtv.m3u、Beesport.m3u、mytvsuper.m3u 和 TheTV。即使在 IP 受限的情况下，依然能够流畅播放4GTV和 MytvSuper。为了流畅观看 MytvSuper，您需要在 pixman Docker 环境中自行配置相应的key。
 - **内容聚合:** 集成央视屏、中国移动 iTV、蜀小果、江苏移动魔百盒和 TPTV（直连）。您可以通过开关选择是否要导入这些直连电视，默认不开启。聚合了各种热门内容，如央视节目、中国移动 iTV、蜀小果、江苏移动魔百盒等，扩展您的内容访问范围。
 - **加固安全:** 新增安全 token，有效防止服务被未授权扫描利用。
 - **简化安装:** 提供直观便捷的流媒体配置流程，极大降低了部署难度。
@@ -40,9 +40,9 @@ StreamShield Proxy 的目标是解决因 IP 限制而无法直接播放 pixman.i
 
 ## 启动 Docker 容器
 
-docker run -d -p 8888:4994 --name streamshield-proxy \
+docker run -d -p 4994:4994 --name streamshield-proxy \
     -e CUSTOM_DOMAIN="http://100.100.100.100:5000" \
-    -e VPS_HOST="http://200.200.200.200:8888" \
+    -e VPS_HOST="http://200.200.200.200:4994" \
     -e SECURITY_TOKEN="test11" \
     -e INCLUDE_MYTVSUPER="free" \
     -e chinam3u="true" \
@@ -60,8 +60,8 @@ docker run -d -p 8888:4994 --name streamshield-proxy \
 | SECURITY_TOKEN="testtoken" | 输入自己设置的安全token防止扫到端口被爆破。 |
 | chinam3u="true" | 是否要开启大陆电视台， 不写这个扩展默认不开启。 |
 | CUSTOM_M3U=“test.m3u”| 是否要开倒入自定义M3U，名字和pixman docker内一致。 |
-| CUSTOM_M3U_PROXY="true" | 是否要用本程序代理流量，不写这个扩展默认默认不开启代理。 |
-| CUSTOM_M3U_PROXY_HOST | 写入这个m3u需要代理的host，方便程序识别并代理。 |
+| CUSTOM_M3U_PROXY="true" | 是否要用本程序代理自定义M3U流量，不写这个扩展默认默认不开启自定义M3U代理。 |
+| CUSTOM_M3U_PROXY_HOST | 写入自定义M3U需要代理的host，方便程序识别并代理。 |
 
 
 ## 部署案例
@@ -78,7 +78,7 @@ docker run -d -p 8888:4994 --name streamshield-proxy \
 -e chinam3u="true"
 --restart always \
 ppyycc/streamshield-proxy:latest
-访问地址：http://200.200.200.200:8888/test11，并已自动导入 mytvsuper_tivimate.m3u，并且能收看大陆电视台。
+访问地址：http://200.200.200.200:8888/test11， 并已自动导入 mytvsuper_tivimate.m3u，并且能收看大陆电视台。
 
 
 仅使用 IP 地址部署并只看free mytvsuper：
@@ -88,12 +88,12 @@ docker pull ppyycc/streamshield-proxy:latest \
 docker run -d -p 8888:4994 --name streamshield-proxy \
 -e CUSTOM_DOMAIN="http://100.100.100.100:5000" \
 -e VPS_HOST="http://200.200.200.200:8888" \
--e SECURITY_TOKEN="test11" \
+-e SECURITY_TOKEN="test22" \
 -e INCLUDE_MYTVSUPER="free" \
 -e chinam3u="true"
 --restart always \
 ppyycc/streamshield-proxy:latest
-访问地址：http://200.200.200.200:8888/test11，并已自动导入 mytvsuper_tivimate.m3u，并且能收看大陆电视台。
+访问地址：http://200.200.200.200:8888/test22， 并已自动导入 mytvfree.m3u，并且能收看大陆电视台。
 
 
 搭配域名和 HTTPS 部署：
@@ -104,10 +104,10 @@ docker pull ppyycc/streamshield-proxy:latest \
 docker run -d -p 444:4994 --name streamshield-proxy \
 -e CUSTOM_DOMAIN="https://pixman.aaaa.com" \
 -e VPS_HOST="https://iptv.bbbb.com" \
--e SECURITY_TOKEN="test222" \
+-e SECURITY_TOKEN="test33" \
 --restart always \
 ppyycc/streamshield-proxy:latest
-访问地址：https://iptv.bbbb.com/test222，默认不包含 mytvsuper 频道清单。
+访问地址：https://iptv.bbbb.com/test33， 默认不包含 mytvsuper 频道清单，没有大陆电视台。
 
 
 ## 媒体终端配置
