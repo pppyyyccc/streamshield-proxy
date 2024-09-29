@@ -44,13 +44,13 @@ function logError(message) {
 const FOUR_SEASONS_URL = `${CUSTOM_DOMAIN}/4gtv.m3u`;
 const BEESPORT_URL = `${CUSTOM_DOMAIN}/beesport.m3u`;
 const YSP_URL = `${CUSTOM_DOMAIN}/ysp.m3u`;
-const SXG_URL = `${CUSTOM_DOMAIN}/sxg.m3u`;
 const ITV_PROXY_URL = `${CUSTOM_DOMAIN}/itv_proxy.m3u`;
 const TPTV_PROXY_URL = `${CUSTOM_DOMAIN}/tptv_proxy.m3u`;
 const MYTVSUPER_URL = `${CUSTOM_DOMAIN}/mytvsuper-tivimate.m3u`;
 const THETV_URL = `${CUSTOM_DOMAIN}/thetv.m3u`;
 const MYTVFREE_URL = INCLUDE_MYTVSUPER === 'free' ? './mytvfree.m3u' : null;
 const CUSTOM_M3U_URL = CUSTOM_M3U ? `${CUSTOM_DOMAIN}/${CUSTOM_M3U}` : null;
+const DLHD_URL = `${CUSTOM_DOMAIN}/dlhd.m3u`;
 const PROXY_DOMAIN = new URL(CUSTOM_DOMAIN).hostname;
 
 // Define source addresses, considering environment variables
@@ -86,8 +86,8 @@ const SRC = [
     url: YSP_URL
   },
   INCLUDE_CHINA_M3U && {
-    name: '蜀小果',
-    url: SXG_URL
+    name: 'DLHD 测试频道',
+    url: DLHD_URL
   },
   INCLUDE_CHINA_M3U && {
     name: '中国移动 iTV 平台',
@@ -119,6 +119,7 @@ const PROXY_DOMAINS = [
   '[^/]+\\.beesport\\.livednow\\.com(:\\d+)?',
   '[^/]+\\.thetvapp\\.to(:\\d+)?',
   '[^/]+\\.pki\\.goog(:\\d+)?',
+  '[^/]+\.thetv-ts\.[^/]+(:\d+)?',// 添加 thetv-ts 域名
   '[^/]+\\.digicert\\.com(:\\d+)?',
   '[^/]+\\.v2h-cdn\\.com(:\\d+)?'
 ];
@@ -218,7 +219,7 @@ async function handleList(req, res) {
 
       if (src.mod) {
         const noproxy = req.url.indexOf('noproxy') > -1;
-        channels = channels.map(src.mod(noproxy));
+        channels = channels.map(channel => src.mod(noproxy)(channel, src.url));
       }
 
       for (const chan of channels) {
@@ -263,8 +264,16 @@ async function handleProxy(req, res) {
         throw new Error('Redirect response without Location header.');
       }
 
+      let newLocation;
+      if (targetUrl.hostname.includes('834438.xyz') && location.startsWith('/')) {
+        // Handle TheTV's special redirect
+        newLocation = `${VPS_HOST}/${SECURITY_TOKEN}/proxy/${targetUrl.origin}${location}`;
+      } else {
+        newLocation = proxify(new URL(location, targetUrl).href);
+      }
+
       const newHeaders = new Headers(resp.headers);
-      newHeaders.set('location', proxify(location));
+      newHeaders.set('location', newLocation);
 
       res.writeHead(resp.status, Object.fromEntries(newHeaders));
       res.end();
@@ -275,14 +284,31 @@ async function handleProxy(req, res) {
 
     if (contentType === 'application/vnd.apple.mpegurl' || contentType === 'application/x-mpegURL') {
       // Handle m3u8 playlists
-      const body = await resp.text();
-      const proxiedBody = proxify(body);
+      let body = await resp.text();
+      
+      // Special handling for TheTV's m3u8 content
+      if (targetUrl.hostname.includes('834438.xyz')) {
+        // Correct the #EXT-X-KEY line
+        body = body.replace(
+          /(#EXT-X-KEY:.*URI=")([^"]+)(".*)/g,
+          (match, p1, p2, p3) => {
+            const keyUrl = new URL(p2, targetUrl).href;
+            return `${p1}${VPS_HOST}/${SECURITY_TOKEN}/proxy/${keyUrl}${p3}`;
+          }
+        );
+
+        // Proxify all other URLs in the m3u8 content
+        body = body.replace(
+          /^(https?:\/\/[^"\s]+)/gm,
+          (match) => `${VPS_HOST}/${SECURITY_TOKEN}/proxy/${match}`
+        );
+      }
 
       res.writeHead(resp.status, {
         ...Object.fromEntries(resp.headers),
-        'content-length': Buffer.byteLength(proxiedBody)
+        'content-length': Buffer.byteLength(body)
       });
-      res.end(proxiedBody);
+      res.end(body);
     } else if (contentType === 'application/dash+xml') {
       const body = await resp.text();
       const proxiedBody = proxify(body);

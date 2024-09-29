@@ -1,6 +1,6 @@
 {
   "name": "streamshield-proxy",
-  "version": "1.0.0",
+  "version": "1.26",
   "description": "Optimized StreamShield Proxy for fast TV channel switching",
   "main": "index.js",
   "scripts": {
