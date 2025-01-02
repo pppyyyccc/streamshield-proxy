@@ -1,0 +1,3 @@
+# Run the script every day at 5AM and 5PM
+0 5,17 * * * python3 /app/convert_mytvfree.py >> /var/log/cron.log 2>&1
+
