@@ -100,12 +100,14 @@ const PROXY_DOMAINS = [
   '[^/]+\\.pki\\.goog(:\\d+)?',
   'thetv-ts\\.wx\\.sb',
   '[^/]+\\.v2h-cdn\\.com(:\\d+)?',
-  'v12.thetvapp.to'
+  'v12.thetvapp.to',
+  'thetvapp\\.to'
 ];
 
 if (CUSTOM_M3U_PROXY && CUSTOM_M3U_PROXY_HOST) {
   PROXY_DOMAINS.push(CUSTOM_M3U_PROXY_HOST);
 }
+
 // Define source addresses
 const SRC = [
   ...EXTRA_M3U_URLS,
@@ -169,12 +171,10 @@ function identity(it) { return it; }
 function addProxyHeader(originalUrl, encodeUrl = false) {
     if (!originalUrl) return originalUrl;
 
-    // 更严格的检查，如果已经包含代理头，直接返回
     if (originalUrl.includes(`${VPS_HOST}/${SECURITY_TOKEN}/proxy/`)) {
         return originalUrl;
     }
 
-    // 检查是否匹配代理域名
     for (const dom of PROXY_DOMAINS) {
         const regex = new RegExp(`^https?://${dom}`, 'i');
         if (regex.test(originalUrl)) {
@@ -187,7 +187,6 @@ function addProxyHeader(originalUrl, encodeUrl = false) {
 
 function proxify(it) {
     return it.replace(/https?:\/\/[^\s"']*/g, (match) => {
-        // 如果已经有代理前缀，直接返回
         if (match.startsWith(`${VPS_HOST}/${SECURITY_TOKEN}/proxy/`)) {
             return match;
         }
@@ -279,7 +278,6 @@ async function handleList(req, res) {
         logDebug(`Filtered ${src.name || 'Extra M3U'}: ${beforeLen} -> ${afterLen} channels`);
       }
 
-      // 只对非VPS源应用代理修改
       if (src.mod && !src.noProxy) {
         const noproxy = req.url.indexOf('noproxy') > -1;
         logDebug(`Applying ${noproxy ? 'direct' : 'proxy'} modifications to ${src.name || 'Extra M3U'}`);
@@ -315,7 +313,6 @@ async function handleProxy(req, res) {
     const headers = new Headers(req.headers);
     headers.delete('host');
 
-    // 特别处理 TheTV 的请求
     if (targetUrl.includes('v12.thetvapp.to')) {
       headers.set('Referer', 'https://v12.thetvapp.to/');
       headers.set('Origin', 'https://v12.thetvapp.to');
@@ -325,10 +322,9 @@ async function handleProxy(req, res) {
       method: req.method,
       headers: headers,
       body: req.method !== 'GET' && req.method !== 'HEAD' ? req : undefined,
-      redirect: 'manual'  // 手动处理重定向
+      redirect: 'manual'
     });
 
-    // 处理重定向
     if ([301, 302, 303, 307, 308].includes(response.status)) {
       const location = response.headers.get('location');
       if (location) {
@@ -345,7 +341,6 @@ async function handleProxy(req, res) {
     const contentType = response.headers.get('content-type');
 
     if (targetUrl.includes('/thetv/drm')) {
-        // DRM 请求直接转发，无需代理
         const drmResponse = await fetch(targetUrl, {
             method: req.method,
             headers: headers
@@ -359,28 +354,33 @@ async function handleProxy(req, res) {
 
         for (const line of m3u8Lines) {
             if (line.startsWith('#EXT-X-KEY')) {
-            // 处理 KEY 行，将相对路径的 URI 转换为完整 URL
-            let modifiedLine = line.replace(
-                /URI="([^"]+)"/,
-                (match, uri) => {
-                    if (uri.startsWith('/')) {
-                        // 相对路径转换为完整 URL
-                        const fullUrl = new URL(uri, targetUrl).href;
-                        return `URI="${fullUrl}"`;
+                let modifiedLine = line.replace(
+                    /URI="([^"]+)"/,
+                    (match, uri) => {
+                        if (uri.includes('thetv')) {
+                            let fullUrl;
+                            if (uri.startsWith('http')) {
+                                fullUrl = uri;
+                            } else if (uri.startsWith('/')) {
+                                fullUrl = new URL(uri, 'https://thetvapp.to').href;
+                            } else {
+                                fullUrl = new URL(uri, targetUrl).href;
+                            }
+                            return `URI="${addProxyHeader(fullUrl)}"`;
+                        }
+                        return `URI="${uri}"`;
                     }
-                    return `URI="${uri}"`;
-                }
-            );
-            modifiedLines.push(modifiedLine);
-        } else if (line.trim().startsWith('http')) {
-            const proxiedUrl = addProxyHeader(line.trim());
-            modifiedLines.push(proxiedUrl);
-        } else if (!line.startsWith('#') && line.trim().endsWith('.ts')) {
-            const absoluteUrl = new URL(line.trim(), targetUrl).href;
-            const proxiedUrl = addProxyHeader(absoluteUrl);
-            modifiedLines.push(proxiedUrl);
-        } else {
-            modifiedLines.push(line);
+                );
+                modifiedLines.push(modifiedLine);
+            } else if (line.trim().startsWith('http')) {
+                const proxiedUrl = addProxyHeader(line.trim());
+                modifiedLines.push(proxiedUrl);
+            } else if (!line.startsWith('#') && line.trim()) {
+                const absoluteUrl = new URL(line.trim(), targetUrl).href;
+                const proxiedUrl = addProxyHeader(absoluteUrl);
+                modifiedLines.push(proxiedUrl);
+            } else {
+                modifiedLines.push(line);
             }
         }
 
