@@ -358,7 +358,7 @@ async function handleProxy(req, res) {
                 (match, uri) => {
                     if (uri.startsWith('/')) {
                         // 相对路径转换为完整 URL
-                        const fullUrl = `https://pixman.834438.xyz${uri}`;
+                        const fullUrl = `https://xxx.xx.xxx${uri}`;
                         return `URI="${fullUrl}"`;
                     }
                     return `URI="${uri}"`;
