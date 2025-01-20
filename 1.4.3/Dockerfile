@@ -1,7 +1,14 @@
-FROM --platform=$TARGETPLATFORM node:16-alpine
+FROM node:16
 
 # 设置工作目录
 WORKDIR /app
+
+# 复制 AKTV_NODE-linux 可执行文件到镜像中
+COPY AKTV_NODE-linux /app/AKTV_NODE-linux
+RUN chmod +x /app/AKTV_NODE-linux
+
+# 创建 AKTV 配置文件模板
+RUN echo '{"ip":"${AKTV_HOST}","port":${AKTV_PORT}}' > /app/aktv_config_template.json
 
 # 复制 package.json 和 package-lock.json（如果存在）
 COPY package*.json ./
@@ -12,14 +19,11 @@ RUN npm install
 # 复制所有源代码到容器中
 COPY . .
 
-# 创建 AKTV 配置文件模板
-RUN echo '{"ip":"${AKTV_HOST}","port":${AKTV_PORT}}' > /app/aktv_config_template.json
-
 # 创建启动脚本
 RUN echo '#!/bin/sh' > /app/start.sh && \
     echo 'set -e' >> /app/start.sh && \
     echo 'echo "Starting script..."' >> /app/start.sh && \
-    echo 'if [ "$(uname -m)" = "x86_64" ] && [ "$AKTV_HOST" ] && [ "$AKTV_PORT" ]; then' >> /app/start.sh && \
+    echo 'if [ "$(uname -m)" = "x86_64" ] && [ -f "/app/AKTV_NODE-linux" ] && [ "$AKTV_HOST" ] && [ "$AKTV_PORT" ]; then' >> /app/start.sh && \
     echo '    echo "Running on x86_64 with AKTV config. Configuring AKTV..."' >> /app/start.sh && \
     echo '    sed "s/\${AKTV_HOST}/$AKTV_HOST/g; s/\${AKTV_PORT}/$AKTV_PORT/g" /app/aktv_config_template.json > /app/config.json' >> /app/start.sh && \
     echo '    echo "AKTV config:"' >> /app/start.sh && \
@@ -43,10 +47,6 @@ RUN echo '#!/bin/sh' > /app/start.sh && \
 
 # 确保 start.sh 有执行权限
 RUN chmod +x /app/start.sh
-
-# 复制 AKTV_NODE-linux 可执行文件到镜像中（仅对 x86_64 架构）
-COPY AKTV_NODE-linux /app/AKTV_NODE-linux
-RUN if [ "$(uname -m)" = "x86_64" ]; then chmod +x /app/AKTV_NODE-linux; fi
 
 # 暴露端口（使用环境变量）
 EXPOSE 4994 ${AKTV_PORT}

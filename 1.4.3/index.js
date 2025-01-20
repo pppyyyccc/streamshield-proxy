@@ -20,6 +20,7 @@ const THETV_SOURCE = process.env.THETV_SOURCE;
 const AKTV_HOST = process.env.AKTV_HOST;
 const AKTV_PORT = process.env.AKTV_PORT;
 const AKTV_EXTERNAL_URL = process.env.AKTV_EXTERNAL_URL;
+const INCLUDE_ADULT_CONTENT = process.env.INCLUDE_ADULT_CONTENT === 'true';
 
 // 修改 EXTRA_M3U_URLS 处理
 const EXTRA_M3U_URLS = (process.env.EXTRA_M3U_URLS || '').split(',').filter(url => url.trim()).map(url => ({
@@ -40,6 +41,26 @@ const DLHD_URL = `${CUSTOM_DOMAIN}/dlhd.m3u`;
 const PROXY_DOMAIN = new URL(CUSTOM_DOMAIN).hostname;
 const AKTV_URL = process.env.AKTV_DEFAULT_SOURCE || (AKTV_HOST && AKTV_PORT ? `http://${AKTV_HOST}:${AKTV_PORT}/live.m3u` : null);
 
+// Adult content URLs
+const ADULT_SOURCES = [
+  {
+    name: 'Adult Content 1',
+    url: 'https://raw.githubusercontent.com/YueChan/Live/main/Adult.m3u',
+    noProxy: true,
+    mod: (noproxy) => (content) => {
+      return content.replace(/group-title="[^"]*"/g, 'group-title="XXX"');
+    }
+  },
+  {
+    name: 'Adult Content 2',
+    url: 'https://raw.githubusercontent.com/reklamalinir/freeadultiptv/master/live_adult_channels.m3u',
+    noProxy: true,
+    mod: (noproxy) => (content) => {
+      return content.replace(/group-title="[^"]*"/g, 'group-title="XXX"');
+    }
+  }
+];
+
 // Log environment variables
 console.log('Environment variables:');
 console.log(`CUSTOM_DOMAIN: ${process.env.CUSTOM_DOMAIN}`);
@@ -53,6 +74,7 @@ console.log(`AKTV_HOST: ${AKTV_HOST}`);
 console.log(`AKTV_PORT: ${AKTV_PORT}`);
 console.log(`AKTV_EXTERNAL_URL: ${AKTV_EXTERNAL_URL}`);
 console.log(`AKTV_DEFAULT_SOURCE: ${process.env.AKTV_DEFAULT_SOURCE}`);
+console.log(`INCLUDE_ADULT_CONTENT: ${INCLUDE_ADULT_CONTENT}`);
 
 if (INCLUDE_MYTVSUPER) {
   console.log(`MYTVSUPER configuration: ${INCLUDE_MYTVSUPER}`);
@@ -113,6 +135,7 @@ const PROXY_DOMAINS = [
 if (CUSTOM_M3U_PROXY && CUSTOM_M3U_PROXY_HOST) {
   PROXY_DOMAINS.push(CUSTOM_M3U_PROXY_HOST);
 }
+
 // Define source addresses
 const SRC = [
   AKTV_URL && {
@@ -120,11 +143,15 @@ const SRC = [
     url: AKTV_URL,
     noProxy: true,
     mod: (noproxy) => (content) => {
+      let modifiedContent = content;
+      // Remove tvg-logo attributes from AKTV content
+      modifiedContent = modifiedContent.replace(/\s+tvg-logo="[^"]*"/g, '');
+      
       if (AKTV_EXTERNAL_URL && !process.env.AKTV_DEFAULT_SOURCE) {
         const originalUrl = `http://${AKTV_HOST}:${AKTV_PORT}`;
-        return content.replace(new RegExp(originalUrl, 'g'), AKTV_EXTERNAL_URL);
+        modifiedContent = modifiedContent.replace(new RegExp(originalUrl, 'g'), AKTV_EXTERNAL_URL);
       }
-      return content;
+      return modifiedContent;
     }
   },
   ...EXTRA_M3U_URLS,
@@ -168,7 +195,9 @@ const SRC = [
     name: '自定义 M3U',
     url: CUSTOM_M3U_URL,
     mod: (noproxy) => noproxy ? identity : proxify
-  }
+  },
+  // Add adult content sources only if enabled
+  ...(INCLUDE_ADULT_CONTENT ? ADULT_SOURCES : [])
 ].filter(Boolean);
 
 // Log configured sources
@@ -216,36 +245,16 @@ const proxyCache = new LRU({
   maxAge: 1000 * 60 * 1 // 1 minute
 });
 
-const server = http.createServer(async (req, res) => {
-  logDebug(`Received request for: ${req.url}`);
-
-  if (req.method === 'OPTIONS') {
-    res.writeHead(200, {
-      'Access-Control-Allow-Origin': '*',
-      'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
-      'Access-Control-Allow-Headers': 'Content-Type, Range'
-    });
-    res.end();
-    return;
-  }
-
-  const token = req.url.split('/')[1];
-  if (token === SECURITY_TOKEN) {
-    if (req.url.startsWith(`/${SECURITY_TOKEN}/proxy`)) {
-      await handleProxy(req, res);
-    } else if (req.url.startsWith(`/${SECURITY_TOKEN}`)) {
-      await handleList(req, res);
-    } else {
-      logDebug(`403 Forbidden: ${req.url}`);
-      res.writeHead(403, { 'Content-Type': 'text/plain' });
-      res.end('Forbidden');
-    }
-  } else {
-    logDebug(`403 Forbidden: ${req.url}`);
-    res.writeHead(403, { 'Content-Type': 'text/plain' });
-    res.end('Forbidden');
-  }
-});
+async function fetchWithTimeout(url, options = {}, timeout = 5000) {
+  const controller = new AbortController();
+  const id = setTimeout(() => controller.abort(), timeout);
+  const response = await fetch(url, {
+    ...options,
+    signal: controller.signal
+  });
+  clearTimeout(id);
+  return response;
+}
 
 async function handleList(req, res) {
   const cacheKey = req.url;
@@ -261,7 +270,7 @@ async function handleList(req, res) {
   let text = `#EXTM3U\n#EXTM3U x-tvg-url="https://assets.livednow.com/epg.xml"\n\n`;
   const REQ = SRC.map(src => ({
     ...src,
-    response: src.local ? null : fetch(src.url).catch(error => {
+    response: src.local ? null : fetchWithTimeout(src.url, {}, 5000).catch(error => {
       logError(`Error fetching ${src.name || 'Unknown source'}: ${error.message}`);
       return null;
     })
@@ -343,12 +352,12 @@ async function handleProxy(req, res) {
       headers.set('Origin', 'https://v12.thetvapp.to');
     }
 
-    const response = await fetch(targetUrl, {
+    const response = await fetchWithTimeout(targetUrl, {
       method: req.method,
       headers: headers,
       body: req.method !== 'GET' && req.method !== 'HEAD' ? req : undefined,
       redirect: 'manual'
-    });
+    }, 5000);
 
     if ([301, 302, 303, 307, 308].includes(response.status)) {
       const location = response.headers.get('location');
@@ -366,10 +375,10 @@ async function handleProxy(req, res) {
     const contentType = response.headers.get('content-type');
 
     if (targetUrl.includes('/thetv/drm')) {
-        const drmResponse = await fetch(targetUrl, {
+        const drmResponse = await fetchWithTimeout(targetUrl, {
             method: req.method,
             headers: headers
-        });
+        }, 5000);
         res.writeHead(drmResponse.status, Object.fromEntries(drmResponse.headers));
         drmResponse.body.pipe(res);
     }
@@ -426,6 +435,37 @@ async function handleProxy(req, res) {
     res.end('Internal Server Error');
   }
 }
+
+const server = http.createServer(async (req, res) => {
+  logDebug(`Received request for: ${req.url}`);
+
+  if (req.method === 'OPTIONS') {
+    res.writeHead(200, {
+      'Access-Control-Allow-Origin': '*',
+      'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
+      'Access-Control-Allow-Headers': 'Content-Type, Range'
+    });
+    res.end();
+    return;
+  }
+
+  const token = req.url.split('/')[1];
+  if (token === SECURITY_TOKEN) {
+    if (req.url.startsWith(`/${SECURITY_TOKEN}/proxy`)) {
+      await handleProxy(req, res);
+    } else if (req.url.startsWith(`/${SECURITY_TOKEN}`)) {
+      await handleList(req, res);
+    } else {
+      logDebug(`403 Forbidden: ${req.url}`);
+      res.writeHead(403, { 'Content-Type': 'text/plain' });
+      res.end('Forbidden');
+    }
+  } else {
+    logDebug(`403 Forbidden: ${req.url}`);
+    res.writeHead(403, { 'Content-Type': 'text/plain' });
+    res.end('Forbidden');
+  }
+});
 
 const PORT = process.env.PORT || 4994;
 server.listen(PORT, () => {
