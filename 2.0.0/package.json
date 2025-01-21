@@ -1,0 +1,24 @@
+{
+  "name": "streamshield-proxy",
+  "version": "2.0.0",
+  "description": "Optimized StreamShield Proxy for fast TV channel switching with enhanced features",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js",
+    "start:dev": "NODE_ENV=development node --no-buffering index.js",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "dependencies": {
+    "xml2js": "^0.4.23",
+    "node-fetch": "^2.6.9",
+    "lru-cache": "^6.0.0",
+    "xmldom": "^0.6.0",
+    "dotenv": "^10.0.0"
+  },
+  "devDependencies": {
+    "nodemon": "^2.0.22"
+  },
+  "engines": {
+    "node": ">=14.0.0"
+  }
+}
