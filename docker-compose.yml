@@ -1,0 +1,42 @@
+version: '3'
+
+services:
+  pixman:
+    image: pixman/pixman
+    container_name: pixman
+    ports:
+      - "${PIXMAN_PORT}:5000"
+    environment:
+      - MYTVSUPER_TOKEN=${MYTVSUPER_TOKEN}
+    restart: always
+
+  thetv:
+    image: dtankdemp/thetvapp-m3u:latest
+    container_name: thetv
+    ports:
+      - "${THETV_PORT}:4124"
+    restart: always
+
+  streamshield-proxy:
+    build: 
+      context: .
+      dockerfile: Dockerfile
+    container_name: streamshield-proxy
+    ports:
+      - "${STREAMSHIELD_PORT}:4994"
+    environment:
+      - CUSTOM_DOMAIN=${CUSTOM_DOMAIN}
+      - VPS_HOST=${VPS_HOST}
+      - SECURITY_TOKEN=${SECURITY_TOKEN}
+      - THETV_URL=http://thetv:4124/playlist
+      - PIXMAN_URL=http://pixman:5000
+    volumes:
+      - ./config:/app/config
+    restart: always
+    depends_on:
+      - pixman
+      - thetv
+
+networks:
+  default:
+    driver: bridge
