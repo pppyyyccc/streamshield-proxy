@@ -54,10 +54,24 @@ docker run -d -p 4994:4994 --name streamshield-proxy \
 | `VPS_HOST`              | 您的VPS主机地址                 |
 | `SECURITY_TOKEN`        | 安全访问令牌                    |
 | `DEBUG`                 | 是否开启调试模式                |
-| `CACHE_UPDATE_INTERVAL` | 缓存更新间隔（毫秒）            |
-| `INCLUDE_ADULT_CONTENT` | 是否包含成人内容                |
-| `CUSTOM_M3U`            | 自定义M3U文件名                 |
-| `EXTRA_M3U_URLS`        | 额外的M3U URL（逗号分隔）       |
+
+
+├── proxy_hosts/
+│ ├── default.txt # 默认代理 hosts 列表 (默认创建，每次升级我会覆盖)
+│ └── user_defined.txt # 用户自定义代理 hosts 列表 (预创建，用户编辑，升级不会覆盖)
+├── remote_m3u/
+│ ├── no_proxy/
+│ │ ├── default_sources.txt # 默认非代理 M3U 源列表 (默认创建，每次升级我会覆盖)
+│ │ └── sources.txt # 用户自定义非代理 M3U 源列表 (预创建，用户编辑，升级不会覆盖)
+│ └── proxy_needed/
+│ └── sources.txt # 用户自定义代理 M3U 源列表 (预创建，用户编辑，升级不会覆盖)
+├── local_m3u/
+│ ├── no_proxy/
+│ │ └── user_m3u.m3u # 用户本地非代理 M3U 文件 (用户手动添加，文件名随便取，后缀支持m3u和txt)
+│ └── proxy_needed/
+│ └── user_m3u.m3u # 用户本地代理 M3U 文件 (用户手动添加，文件名随便取，后缀支持m3u和txt)
+└── generated/
+└── all.m3u # 聚合的 M3U 文件 (程序自动生成)
 
 ## **访问**
 在您的流媒体播放器中使用以下格式的URL：
