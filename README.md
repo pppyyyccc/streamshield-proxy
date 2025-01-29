@@ -1,7 +1,7 @@
 # StreamShield Proxy: 多源流媒体聚合代理工具
 
 ## 简介
-StreamShield Proxy 2.0.0 是一个强大的多源流媒体聚合代理工具，旨在解决因 IP 限制而无法直接播放各种流媒体内容的问题。它支持多个VPS部署，形成CDN网络，为用户提供流畅的流媒体播放体验。
+StreamShield Proxy 是一个强大的多源流媒体聚合代理工具，旨在解决因 IP 限制而无法直接播放各种流媒体内容的问题。它支持多个VPS部署，形成CDN网络，为用户提供流畅的流媒体播放体验。
 
 ## 核心功能
 - **多源聚合**：支持4gtv、Beesport、MyTVSuper、TheTV、AKTV等多个流媒体源
@@ -84,7 +84,7 @@ config/
 ##  使用说明
 
 1. 用户可以在 `user_defined.txt` 中添加自定义的代理 hosts。
-2. 在 `remote_m3u/no_proxy/sources.txt` 和 `remote_m3u/proxy_needed/sources.txt` 中添加远程 M3U 源。
+2. 在 `remote_m3u/no_proxy/sources.txt` 和 `remote_m3u/proxy_needed/sources.txt` 中添加远程 M3U 源。pixman生成需要代理的链接都可作为外部链接写入文件remote_m3u/proxy_needed/sources.txt中。
 3. 用户可以在 `local_m3u` 文件夹中添加本地 M3U 文件。
 4. `generated/all.m3u` 是程序自动生成的聚合 M3U 文件，请勿手动编辑。
 
