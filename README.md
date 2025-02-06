@@ -39,10 +39,6 @@ StreamShield Proxy 是一个强大的多源流媒体聚合代理工具，旨在�
 docker run -d -p 4994:4994 --name streamshield-proxy \
     -e VPS_HOST="http://your-vps-ip:4994" \
     -e SECURITY_TOKEN="your_security_token" \
-    -e DEBUG="true" \
-    -e CACHE_UPDATE_INTERVAL="600000" \
-    -e INCLUDE_ADULT_CONTENT="false" \
-    -e CUSTOM_M3U="custom.m3u" \
     -e EXTRA_M3U_URLS="http://extra1.com/playlist,http://extra2.com/playlist" \
     --restart always \
     ppyycc/streamshield-proxy:latest
