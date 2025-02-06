@@ -40,6 +40,7 @@ docker run -d -p 4994:4994 --name streamshield-proxy \
     -e VPS_HOST="http://your-vps-ip:4994" \
     -e SECURITY_TOKEN="your_security_token" \
     -e EXTRA_M3U_URLS="http://extra1.com/playlist,http://extra2.com/playlist" \
+    -v /yourpath:/app/config \
     --restart always \
     ppyycc/streamshield-proxy:latest
 
