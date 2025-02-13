@@ -1,0 +1,541 @@
+const http = require('http');
+const https = require('https');
+const url = require('url');
+const fetch = require('node-fetch');
+const { Headers } = require('node-fetch');
+const LRU = require('lru-cache');
+const fs = require('fs').promises;
+const path = require('path');
+const xml2js = require('xml2js');
+const { Readable } = require('stream');
+
+// 定义基础配置目录常量
+const BASE_CONFIG_DIR = '/app/config';
+
+// 环境变量
+const PORT = process.env.PORT || 4994;
+const CUSTOM_DOMAIN = process.env.CUSTOM_DOMAIN || 'default-domain.com';
+const SECURITY_TOKEN = process.env.SECURITY_TOKEN || 'test123';
+const VPS_HOST = process.env.VPS_HOST;
+const DEBUG = process.env.DEBUG === 'true';
+const CACHE_UPDATE_INTERVAL = parseInt(process.env.CACHE_UPDATE_INTERVAL) || 600000; // 10 minutes
+const USE_DEFAULT_SOURCES = process.env.USE_DEFAULT_SOURCES !== 'false';
+const EPG_URL = process.env.EPG_URL || 'https://assets.livednow.com/epg.xml';
+
+// 详细日志函数
+function log(...args) {
+  if (DEBUG) {
+    console.log('[DEBUG]', new Date().toISOString(), ...args);
+  }
+}
+
+function logInfo(...args) {
+  console.log('[INFO]', new Date().toISOString(), ...args);
+}
+
+function logError(...args) {
+  console.error('[ERROR]', new Date().toISOString(), ...args);
+}
+
+// 配置和初始化
+async function loadConfig() {
+  log('Starting to load configuration');
+  const config = {
+    PORT,
+    CUSTOM_DOMAIN,
+    SECURITY_TOKEN,
+    VPS_HOST,
+    DEBUG,
+    CACHE_UPDATE_INTERVAL,
+    USE_DEFAULT_SOURCES,
+    EPG_URL,
+  };
+
+  // 加载代理 hosts
+  config.PROXY_HOSTS = await readFileContent(path.join(BASE_CONFIG_DIR, 'proxy_hosts/default.txt'));
+  try {
+    const userDefinedHosts = await readFileContent(path.join(BASE_CONFIG_DIR, 'proxy_hosts/user_defined.txt'));
+    config.PROXY_HOSTS = config.PROXY_HOSTS.concat(userDefinedHosts);
+    logInfo('User defined proxy hosts loaded successfully.');
+  } catch (error) {
+    if (error.code === 'ENOENT') {
+      logInfo('No user defined proxy hosts file found. Using default hosts only.');
+    } else {
+      logError(`Error reading user defined proxy hosts: ${error.message}`);
+    }
+  }
+
+  logInfo(`Loaded PROXY_HOSTS: ${JSON.stringify(config.PROXY_HOSTS)}`);
+
+  // 加载远程 M3U 源
+  config.REMOTE_M3U_NO_PROXY = [];
+  if (config.USE_DEFAULT_SOURCES) {
+    config.REMOTE_M3U_NO_PROXY = await loadRemoteSources(path.join(BASE_CONFIG_DIR, 'remote_m3u/no_proxy/default_sources.txt'));
+    logInfo('Default no-proxy sources loaded.');
+  }
+  try {
+    const userNoProxySources = await loadRemoteSources(path.join(BASE_CONFIG_DIR, 'remote_m3u/no_proxy/sources.txt'));
+    config.REMOTE_M3U_NO_PROXY = config.REMOTE_M3U_NO_PROXY.concat(userNoProxySources);
+    logInfo('User defined no-proxy sources loaded successfully.');
+  } catch (error) {
+    if (error.code === 'ENOENT') {
+      logInfo('No user defined no-proxy sources file found.');
+    } else {
+      logError(`Error reading user defined no-proxy sources: ${error.message}`);
+    }
+  }
+
+  try {
+    config.REMOTE_M3U_PROXY = await loadRemoteSources(path.join(BASE_CONFIG_DIR, 'remote_m3u/proxy_needed/sources.txt'));
+    logInfo('Proxy-needed sources loaded successfully.');
+  } catch (error) {
+    if (error.code === 'ENOENT') {
+      logInfo('No proxy-needed sources file found.');
+    } else {
+      logError(`Error reading proxy-needed sources: ${error.message}`);
+    }
+    config.REMOTE_M3U_PROXY = [];
+  }
+
+  // 加载本地 M3U 文件
+  config.LOCAL_M3U_PROXY = await listFilesInDirectory(path.join(BASE_CONFIG_DIR, 'local_m3u/proxy_needed'));
+  config.LOCAL_M3U_NO_PROXY = await listFilesInDirectory(path.join(BASE_CONFIG_DIR, 'local_m3u/no_proxy'));
+
+  log('Configuration loaded successfully');
+  return config;
+}
+
+async function loadRemoteSources(filePath) {
+  log(`Loading remote sources from: ${filePath}`);
+  const content = await readFileContent(filePath);
+  return content.map(line => {
+    if (line.includes(',http')) {
+      const [name, url] = line.split(',');
+      return { url: url.trim(), name: name.trim(), isDirectChannel: true };
+    }
+    try {
+      const urlObj = new URL(line);
+      const groupTitle = urlObj.searchParams.get('group-title');
+      const removeTvLogo = urlObj.searchParams.get('remove-tv-logo') === 'true';
+      if (urlObj.hostname === '127.0.0.1' || urlObj.hostname === 'localhost') {
+        log(`Warning: Local URL detected: ${line}. Ensure this is intended.`);
+      }
+      return { 
+        url: urlObj.toString(),
+        groupTitle,
+        removeTvLogo,
+        originalUrl: line
+      };
+    } catch (error) {
+      logError(`Invalid URL in source file (${filePath}): ${line}`);
+      return null;
+    }
+  }).filter(item => item !== null);
+}
+
+// 文件处理
+async function readFileContent(filePath) {
+  log(`Reading file content: ${filePath}`);
+  try {
+    const content = await fs.readFile(filePath, 'utf8');
+    return content.replace(/\r\n/g, '\n').split('\n').filter(line => line.trim());
+  } catch (error) {
+    logError(`Error reading file ${filePath}: ${error.message}`);
+    return [];
+  }
+}
+
+async function writeFileContent(filePath, content) {
+  log(`Writing file content: ${filePath}`);
+  await fs.writeFile(filePath, content, 'utf8');
+}
+
+async function listFilesInDirectory(dirPath) {
+  log(`Listing files in directory: ${dirPath}`);
+  try {
+    const files = await fs.readdir(dirPath);
+    return files.map(file => path.join(dirPath, file));
+  } catch (error) {
+    logError(`Error listing files in directory ${dirPath}: ${error.message}`);
+    return [];
+  }
+}
+// M3U 处理
+async function parseAndModifyM3U(content, sourceUrl, options = {}, proxyHosts) {
+  log(`Parsing and modifying M3U content from: ${sourceUrl}`);
+  const lines = content.split('\n');
+  let modifiedContent = '';
+  let currentGenre = '';
+  let isFirstExtm3u = true;
+
+  log(`Parsing content from ${sourceUrl} with ${lines.length} lines`);
+
+  function extractChannelName(line) {
+    const match = line.match(/,(.+) $ /);
+    return match ? match[1].trim() : '';
+  }
+
+  function extractGroupTitle(line) {
+    const match = line.match(/group-title="([^"]+)"/);
+    return match ? match[1] : '';
+  }
+
+  for (let i = 0; i < lines.length; i++) {
+    let line = lines[i].trim();
+    
+    if (line.startsWith('#EXTM3U')) {
+      if (isFirstExtm3u) {
+        modifiedContent += `${line}\n`;
+        isFirstExtm3u = false;
+      }
+      continue;
+    }
+
+    if (line.includes('#genre#')) {
+      currentGenre = line.split('#genre#')[0].trim();
+      log(`Found genre: ${currentGenre}`);
+      continue;
+    }
+
+    if (line.startsWith('#EXTINF:')) {
+      let channelName = extractChannelName(line);
+      let groupTitle = extractGroupTitle(line) || currentGenre || options.groupTitle || '';
+      
+      // 如果 group-title 已存在，就更新它；否则添加新的 group-title
+      if (line.includes('group-title=')) {
+        line = line.replace(/group-title="[^"]*"/, `group-title="${groupTitle}"`);
+      } else {
+        line = line.replace('#EXTINF:', `#EXTINF: group-title="${groupTitle}",`);
+      }
+
+      modifiedContent += `${line}\n`;
+
+      // 处理下一行（URL）
+      if (i + 1 < lines.length) {
+        let nextLine = lines[++i].trim();
+        if (nextLine.startsWith('http') || nextLine.startsWith('https')) {
+          if (shouldProxy(nextLine, proxyHosts)) {
+            nextLine = addProxyHeader(nextLine);
+            log(`Added proxy header to URL: ${nextLine}`);
+          }
+          modifiedContent += `${nextLine}\n`;
+        } else {
+          i--; // 如果下一行不是 URL，回退索引
+        }
+      }
+    } else if (line.startsWith('http') || line.startsWith('https')) {
+      // 处理没有 EXTINF 的直接 URL
+      if (shouldProxy(line, proxyHosts)) {
+        line = addProxyHeader(line);
+        log(`Added proxy header to URL: ${line}`);
+      }
+      modifiedContent += `${line}\n`;
+    } else if (line.startsWith('#')) {
+      // 保留其他元数据行
+      modifiedContent += `${line}\n`;
+    }
+  }
+
+  log(`Parsed content from ${sourceUrl}, final length: ${modifiedContent.length}`);
+  return modifiedContent.trim();
+}
+
+// 代理处理
+function shouldProxy(url, proxyHosts) {
+  try {
+    const parsedUrl = new URL(url);
+    const hostname = parsedUrl.hostname;
+    const fullHost = parsedUrl.host;
+
+    const shouldProxyResult = proxyHosts.some(host => 
+      hostname.includes(host) || fullHost.includes(host)
+    );
+
+    log(`Checking if URL should be proxied: ${url}`);
+    log(`Hostname: ${hostname}`);
+    log(`Full host (with port): ${fullHost}`);
+    log(`PROXY_HOSTS: ${JSON.stringify(proxyHosts)}`);
+    log(`Should proxy result: ${shouldProxyResult}`);
+
+    return shouldProxyResult;
+  } catch (error) {
+    logError(`Error in shouldProxy for URL ${url}: ${error.message}`);
+    return false;
+  }
+}
+
+function addProxyHeader(originalUrl, encodeUrl = false) {
+  log(`Adding proxy header to URL: ${originalUrl}`);
+  if (!originalUrl || !config.VPS_HOST || !config.SECURITY_TOKEN) {
+    log(`Missing required information for proxy. VPS_HOST: ${config.VPS_HOST}, SECURITY_TOKEN: ${config.SECURITY_TOKEN}`);
+    return originalUrl;
+  }
+  if (originalUrl.includes(`${config.VPS_HOST}/${config.SECURITY_TOKEN}/proxy/`)) return originalUrl;
+  const proxyUrl = `${config.VPS_HOST}/${config.SECURITY_TOKEN}/proxy/${encodeUrl ? encodeURIComponent(originalUrl) : originalUrl}`;
+  log(`Proxied URL: ${proxyUrl}`);
+  return proxyUrl;
+}
+
+// 缓存处理
+const m3uCache = new LRU({
+  max: 100,
+  maxAge: 1000 * 60 * 5 // 5 minutes
+});
+
+// 网络请求处理
+async function fetchWithTimeout(url, options = {}, timeout = 30000) {
+  log(`Fetching URL with timeout: ${url}`);
+  const controller = new AbortController();
+  const id = setTimeout(() => controller.abort(), timeout);
+
+  const httpsAgent = new https.Agent({
+    rejectUnauthorized: false
+  });
+
+  try {
+    const response = await fetch(url, {
+      ...options,
+      signal: controller.signal,
+      agent: url.startsWith('https') ? httpsAgent : null,
+      redirect: 'follow'
+    });
+    clearTimeout(id);
+    log(`Fetch completed for URL: ${url}, status: ${response.status}`);
+    return response;
+  } catch (error) {
+    clearTimeout(id);
+    if (error.name === 'AbortError') {
+      logError(`Request timeout for URL: ${url}`);
+      throw new Error(`Request timeout for URL: ${url}`);
+    }
+    logError(`Error fetching ${url}: ${error.message}`);
+    throw error;
+  }
+}
+
+// 主要处理函数
+const processSource = async (source) => {
+  log(`Processing source: ${typeof source === 'string' ? source : JSON.stringify(source)}`);
+  try {
+    let sourceContent;
+    let sourceUrl;
+    let options = {};
+    if (source.isDirectChannel) {
+      return `#EXTINF:-1 tvg-name="${source.name}",${source.name}\n${source.url}\n`;
+    } else if (typeof source === 'string') {
+      sourceContent = await fs.readFile(source, 'utf8');
+      sourceUrl = source;
+      log(`Read local file: ${source}, content length: ${sourceContent.length}`);
+    } else if (typeof source === 'object' && source.url) {
+      sourceUrl = source.url;
+      options = {
+        groupTitle: source.groupTitle || '',
+        removeTvLogo: source.removeTvLogo
+      };
+      const response = await fetchWithTimeout(sourceUrl, {}, 30000);
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      sourceContent = await response.text();
+      log(`Fetched remote content from ${sourceUrl}, content length: ${sourceContent.length}`);
+    } else {
+      throw new Error("Invalid source type");
+    }
+
+    log(`Processing content with parseAndModifyM3U, options:`, options);
+    let modifiedContent = await parseAndModifyM3U(sourceContent, sourceUrl, options, config.PROXY_HOSTS);
+    log(`Finished processing source, modified content length: ${modifiedContent.length}`);
+    return modifiedContent;
+  } catch (error) {
+    logError(`Error processing source ${JSON.stringify(source)}: ${error.message}`);
+    logError(`Error stack: ${error.stack}`);
+    return '';
+  }
+};
+
+async function handleRequest(req, res) {
+  const parsedUrl = url.parse(req.url, true);
+  const pathParts = parsedUrl.pathname.split('/').filter(part => part);
+
+  log(`Received request: ${req.method} ${req.url}`);
+  log(`Path parts: ${JSON.stringify(pathParts)}`);
+  log(`Headers: ${JSON.stringify(req.headers)}`);
+
+  if (pathParts.length === 0 || pathParts[0] !== config.SECURITY_TOKEN) {
+    log(`Invalid token or path: ${parsedUrl.pathname}`);
+    res.writeHead(403, { 'Content-Type': 'text/plain' });
+    res.end('Forbidden');
+    return;
+  }
+
+  if (pathParts[1] === 'health') {
+    res.writeHead(200, { 'Content-Type': 'application/json' });
+    res.end(JSON.stringify({ status: 'OK', timestamp: new Date().toISOString() }));
+    return;
+  }
+
+  if (pathParts.length === 1 || (pathParts.length === 2 && pathParts[1] === 'all.m3u')) {
+    await handleM3UList(req, res);
+  } else if (pathParts[1] === 'proxy') {
+    await handleProxy(req, res);
+  } else {
+    log(`Not found: ${req.url}`);
+    res.writeHead(404, { 'Content-Type': 'text/plain' });
+    res.end('Not Found');
+  }
+}
+
+async function handleM3UList(req, res) {
+  log('Handling M3U list request');
+  let cachedContent = m3uCache.get('all');
+  if (!cachedContent) {
+    log('No cached M3U content found, generating new content');
+    try {
+      cachedContent = await generateAggregatedM3U(config);
+      m3uCache.set('all', cachedContent);
+      log('New M3U content generated and cached');
+    } catch (error) {
+      logError(`Error generating M3U list: ${error.message}`);
+      res.writeHead(500, { 'Content-Type': 'text/plain' });
+      res.end('Internal Server Error');
+      return;
+    }
+  } else {
+    log('Serving cached M3U content');
+  }
+
+  res.writeHead(200, { 'Content-Type': 'application/x-mpegURL' });
+  log(`Sending M3U content to client, length: ${cachedContent.length}`);
+  log(`First 500 characters of content: ${cachedContent.substring(0, 500)}`);
+  res.end(cachedContent);
+}
+
+async function handleProxy(req, res) {
+  log('Handling proxy request');
+  try {
+    const urlParts = req.url.split(`/${config.SECURITY_TOKEN}/proxy/`);
+    if (urlParts.length < 2 || !urlParts[1]) {
+      throw new Error('Invalid proxy request: missing target URL');
+    }
+    const targetUrl = decodeURIComponent(urlParts[1]);
+
+    log(`Proxying request to: ${targetUrl}`);
+    log(`Original request headers: ${JSON.stringify(req.headers)}`);
+
+    const response = await fetchWithTimeout(targetUrl, {
+      method: req.method,
+      headers: req.headers,
+      body: req.method !== 'GET' && req.method !== 'HEAD' ? req : undefined,
+      redirect: 'follow'
+    }, 30000);
+
+    log(`Proxy response status: ${response.status} for ${targetUrl}`);
+    log(`Proxy response headers: ${JSON.stringify(response.headers.raw())}`);
+
+    res.writeHead(response.status, response.headers.raw());
+    response.body.pipe(res);
+  } catch (error) {
+    logError(`Error in handleProxy: ${error.message}`);
+    logError(`Error stack: ${error.stack}`);
+    res.writeHead(500, { 'Content-Type': 'text/plain' });
+    res.end('Internal Server Error');
+  }
+}
+
+async function generateAggregatedM3U(config) {
+  logInfo('Starting to generate aggregated M3U...');
+  let content = `#EXTM3U x-tvg-url="${config.EPG_URL}"\n`;
+
+  const addSource = async (source) => {
+    let processedContent = await processSource(source);
+    if (processedContent) {
+      content += processedContent + '\n';
+      log(`Added content from source: ${JSON.stringify(source)}, new total length: ${content.length}`);
+    } else {
+      log(`No content added from source: ${JSON.stringify(source)}`);
+    }
+  };
+
+  for (const file of config.LOCAL_M3U_PROXY) {
+    await addSource(file);
+  }
+  for (const file of config.LOCAL_M3U_NO_PROXY) {
+    await addSource(file);
+  }
+  for (const source of config.REMOTE_M3U_PROXY) {
+    await addSource(source);
+  }
+  for (const source of config.REMOTE_M3U_NO_PROXY) {
+    await addSource(source);
+  }
+
+  // Remove any duplicate newlines
+  content = content.replace(/\n\s*\n/g, '\n');
+
+  await writeFileContent(path.join(BASE_CONFIG_DIR, 'generated/all.m3u'), content);
+  logInfo(`Aggregated M3U generation completed. Total length: ${content.length}`);
+  return content;
+}
+
+// Main
+let config;
+
+async function main() {
+  logInfo('Starting StreamShield Proxy...');
+  logInfo('Environment variables:');
+  logInfo(`PORT: ${PORT}`);
+  logInfo(`CUSTOM_DOMAIN: ${CUSTOM_DOMAIN}`);
+  logInfo(`VPS_HOST: ${VPS_HOST}`);
+  logInfo(`DEBUG: ${DEBUG}`);
+  logInfo(`CACHE_UPDATE_INTERVAL: ${CACHE_UPDATE_INTERVAL}`);
+  logInfo(`USE_DEFAULT_SOURCES: ${USE_DEFAULT_SOURCES}`);
+  logInfo(`EPG_URL: ${EPG_URL}`);
+
+  if (DEBUG) {
+    logInfo('Debug mode is enabled. Full logging will be displayed.');
+  }
+
+  try {
+    config = await loadConfig();
+    log('Full configuration:', JSON.stringify(config, null, 2));
+    logInfo(`Using default sources: ${config.USE_DEFAULT_SOURCES ? 'Yes' : 'No'}`);
+
+    logInfo('Generating initial all.m3u file...');
+    const initialContent = await generateAggregatedM3U(config);
+    m3uCache.set('all', initialContent);
+    logInfo(`Initial all.m3u file generated and cached successfully. Length: ${initialContent.length}`);
+
+    const server = http.createServer(handleRequest);
+    server.listen(config.PORT, () => {
+      logInfo(`StreamShield Proxy v2.0.0 is listening on port ${config.PORT}`);
+      
+      const contentLines = initialContent.split('\n');
+      logInfo(`First 20 lines of generated content:`);
+      contentLines.slice(0, 20).forEach((line, index) => logInfo(`${index + 1}: ${line}`));
+      logInfo(`Last 20 lines of generated content:`);
+      contentLines.slice(-20).forEach((line, index) => logInfo(`${contentLines.length - 20 + index + 1}: ${line}`));
+    });
+
+    // Set up periodic updates
+    setInterval(async () => {
+      logInfo('Starting periodic M3U update');
+      try {
+        const updatedContent = await generateAggregatedM3U(config);
+        m3uCache.set('all', updatedContent);
+        logInfo(`Periodic all.m3u update completed successfully. New content length: ${updatedContent.length}`);
+      } catch (error) {
+        logError(`Error in periodic update: ${error.message}`);
+        logError(`Error stack: ${error.stack}`);
+      }
+    }, config.CACHE_UPDATE_INTERVAL);
+
+  } catch (error) {
+    logError(`Error during initialization: ${error.message}`);
+    process.exit(1);
+  }
+}
+
+main().catch(error => {
+  logError(`Error during initialization: ${error.message}`);
+  process.exit(1);
+});
