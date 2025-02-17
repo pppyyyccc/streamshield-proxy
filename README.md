@@ -44,7 +44,7 @@ docker run -d -p 4994:4994 --name streamshield-proxy \
     -e DEBUG="true" \
     --restart always \
     ppyycc/streamshield-proxy:latest
-
+```
 ## 环境变量配置
 
 | 变量                  | 描述                                |
@@ -57,7 +57,7 @@ docker run -d -p 4994:4994 --name streamshield-proxy \
 ## 本地持久化文件夹结构
 
 
-\`\`\`
+```bash
 config/
 ├── proxy_hosts/
 │ ├── default.txt # 默认代理 hosts 列表 (默认创建，每次升级会覆盖)
@@ -75,7 +75,7 @@ config/
 │ └── user_m3u.m3u # 用户本地代理 M3U 文件 (用户手动添加，文件名随便取，后缀支持m3u和txt)
 └── generated/
 └── all.m3u # 聚合的 M3U 文件 (程序自动生成)
-\`\`\`
+```
 
 ##  使用说明
 
