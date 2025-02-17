@@ -1,0 +1,29 @@
+version: '3.8'
+
+services:
+  streamshield-proxy:
+    image: ppyycc/streamshield-proxy:latest
+    container_name: streamshield-proxy
+    restart: always
+    ports:
+      - "${PROXY_PORT}:4994"
+    volumes:
+      - ${PROXY_CONFIG_PATH}:/app/config
+    environment:
+      - DEBUG=true
+      - VPS_HOST=${PROXY_HOST}
+      - SECURITY_TOKEN=${PROXY_TOKEN}
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "5"
+
+  doube-ofiii:
+    image: doubebly/doube-ofiii:1.0.5
+    container_name: doube-ofiii
+    restart: always
+    ports:
+      - "${OFIII_PORT}:5000"
+    volumes:
+      - ${OFIII_CONFIG_PATH}:/app/config
