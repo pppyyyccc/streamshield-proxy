@@ -52,7 +52,7 @@ amagi.tv
 143.244.60.30:80
 143.244.60.30" > /app/config/proxy_hosts/default.txt
 
-# 添加默认的不需要代理的远程 M3U 源（每次都会覆盖）
+# 添加默认的远程 M3U 源（每次都会覆盖）
 echo "https://raw.githubusercontent.com/btjson/TVB/refs/heads/main/Aktv.m3u" > /app/config/remote_m3u/proxy_needed/default_sources.txt
 
 # 创建用户自定义文件（如果不存在）
