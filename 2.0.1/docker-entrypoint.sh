@@ -30,7 +30,27 @@ pki.goog
 thetv-ts.wx.sb
 digicert.com
 aktv.top
-v2h-cdn.com" > /app/config/proxy_hosts/default.txt
+v2h-cdn.com
+88.212.7.11
+5f22d76e220e1.streamlock.net
+38.64.72.148
+ntdfreevcpc-tgc.cdn.hinet.net
+bk.msbot.us.kg
+live-gbnews.simplestreamcdn.com
+moveonjoy.com
+freetv.fun
+cloudfront.net
+live-hls-web-aje.getaj.net
+fox-foxnewsnow-samsungus.amagi.tv
+nmxlive.akamaized.net
+mediatailor.us-east-1.amazonaws.com
+tsv2.amagi.tv
+appletree-mytimeau-samsung.amagi.tv
+bcovlive-a.akamaihd.net
+rt-rtd.rttv.com
+amagi.tv
+143.244.60.30:80
+143.244.60.30" > /app/config/proxy_hosts/default.txt
 
 # 添加默认的不需要代理的远程 M3U 源（每次都会覆盖）
 echo "https://raw.githubusercontent.com/btjson/TVB/refs/heads/main/Aktv.m3u" > /app/config/remote_m3u/proxy_needed/default_sources.txt
