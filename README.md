@@ -79,7 +79,7 @@ config/
 
 ##  使用说明
 
-1. 用户可以在 \`user_defined.txt\` 中添加自定义的代理 hosts。
+1. 用户可以在 \`user_defined.txt\` 中添加自定义的需要代理的hosts，一行一条。
 2. 在 \`remote_m3u/no_proxy/sources.txt\` 和 \`remote_m3u/proxy_needed/sources.txt\` 中添加远程 M3U 源。
 3. 用户可以在 \`local_m3u\` 文件夹中添加本地 M3U 文件。
 4. \`generated/all.m3u\` 是程序自动生成的聚合 M3U 文件，请勿手动编辑。
