@@ -21,6 +21,8 @@ StreamShield Proxy 2.0.0 是一个强大的多源流媒体聚合代理工具，�
 ## 快速开始
 
 ### 使用Docker Compose部署
+前置调教先安装完成docker和docker compose
+
 1. 克隆仓库：
     ```bash
     git clone https://github.com/pppyyyccc/streamshield-proxy.git
