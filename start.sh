@@ -39,9 +39,6 @@ else
     echo -e "\033[33mOFIII 源已存在于非代理源列表，跳过添加\033[0m"
 fi
 
-# AKTV 源的添加部分 (这里假设你也有类似的需求，如果不需要检查重复项，这部分可以保持不变)
-echo "https://aktv.cdn.kwai.com/bs2/video-ex/playlist/auto/4aa8b899-f93b-4b8c-824a-873935a8288b/1704258988000/HLS/k_sd/1000k/prog.m3u8" >> ${PROXY_CONFIG_PATH}/remote_m3u/proxy_needed/sources.txt
-echo -e "\033[36m已添加 AKTV 源到代理源列表\033[0m"
 
 # 以优雅的颜色显示信息
 echo -e "\033[36m服务已启动！\033[0m"
