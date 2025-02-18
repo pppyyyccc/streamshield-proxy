@@ -36,7 +36,7 @@ echo "http://${HOST_IP}:${OFIII_PORT}/Sub?type=txt&token=${OFIII_USER}" >> ${PRO
 
 echo "服务已启动！"
 echo "StreamShield 代理访问地址: ${PROXY_HOST}/${PROXY_TOKEN}""
-echo "OFIII 服务访问地址: http://${HOST_IP}:${OFIII_PORT}/Sub?type=txt&token=${OFIII_USER}"
 echo "已添加以下源："
 echo "1. Global.m3u 到代理源列表"
 echo "2. OFIII 源到非代理源列表"
+echo "3. AKTV 源到代理源列表"
