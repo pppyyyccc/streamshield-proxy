@@ -35,7 +35,7 @@ echo "https://raw.githubusercontent.com/YueChan/Live/refs/heads/main/Global.m3u"
 echo "http://${HOST_IP}:${OFIII_PORT}/Sub?type=txt&token=${OFIII_USER}" >> ${PROXY_CONFIG_PATH}/remote_m3u/no_proxy/sources.txt
 
 echo "服务已启动！"
-echo "StreamShield 代理访问地址: ${PROXY_HOST}"
+echo "StreamShield 代理访问地址: ${PROXY_HOST}/${PROXY_TOKEN}""
 echo "OFIII 服务访问地址: http://${HOST_IP}:${OFIII_PORT}/Sub?type=txt&token=${OFIII_USER}"
 echo "已添加以下源："
 echo "1. Global.m3u 到代理源列表"
