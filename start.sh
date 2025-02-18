@@ -34,9 +34,10 @@ echo "https://raw.githubusercontent.com/YueChan/Live/refs/heads/main/Global.m3u"
 # 添加 OFIII 源到 no_proxy sources
 echo "http://${HOST_IP}:${OFIII_PORT}/Sub?type=txt&token=${OFIII_USER}" >> ${PROXY_CONFIG_PATH}/remote_m3u/no_proxy/sources.txt
 
-echo "服务已启动！"
-echo "StreamShield 代理访问地址: ${PROXY_HOST}/${PROXY_TOKEN}""
-echo "已添加以下源："
-echo "1. Global.m3u 到代理源列表"
-echo "2. OFIII 源到非代理源列表"
-echo "3. AKTV 源到代理源列表"
+# 以优雅的颜色显示信息
+echo -e "\033[36m服务已启动！\033[0m"
+echo -e "\033[36mStreamShield 代理访问地址: ${PROXY_HOST}/${PROXY_TOKEN}\033[0m"
+echo -e "\033[36m已添加以下源：\033[0m"
+echo -e "\033[36m1. Global.m3u 到代理源列表\033[0m"
+echo -e "\033[36m2. OFIII 源到非代理源列表\033[0m"
+echo -e "\033[36m3. AKTV 源到代理源列表\033[0m"
