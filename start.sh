@@ -20,14 +20,16 @@ EOL
 # 设置 OFIII 配置权限
 chmod -R 755 ${OFIII_CONFIG_PATH}
 
-# 添加 Global.m3u 源到 proxy_needed/sources.txt
-echo "https://raw.githubusercontent.com/YueChan/Live/refs/heads/main/Global.m3u" >> ${PROXY_CONFIG_PATH}/remote_m3u/proxy_needed/sources.txt
+
 
 # 启动服务
 docker-compose up -d
 
 # 等待服务启动
 sleep 5
+
+# 添加 Global.m3u 源到 proxy_needed/sources.txt
+echo "https://raw.githubusercontent.com/YueChan/Live/refs/heads/main/Global.m3u" >> ${PROXY_CONFIG_PATH}/remote_m3u/proxy_needed/sources.txt
 
 # 添加 OFIII 源到 no_proxy sources
 echo "http://${HOST_IP}:${OFIII_PORT}/Sub?type=txt&token=${OFIII_USER}" >> ${PROXY_CONFIG_PATH}/remote_m3u/no_proxy/sources.txt
