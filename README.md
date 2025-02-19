@@ -38,6 +38,13 @@ StreamShield Proxy 2.0.0 是一个强大的多源流媒体聚合代理工具，�
        ./start.sh
     ```
     
+4. 更新服务：
+    ```bash
+        docker compose pull
+        docker compose down
+        docker compose up -d
+    ```
+
 ### 使用Docker部署
 ```bash
 docker run -d -p 4994:4994 --name streamshield-proxy \
