@@ -92,8 +92,8 @@ config/
 2. 在 \`remote_m3u/no_proxy/sources.txt\` 和 \`remote_m3u/proxy_needed/sources.txt\` 中添加远程 M3U 源。
 3. 用户可以在 \`local_m3u\` 文件夹中添加本地 M3U 文件。
 4. \`generated/all.m3u\` 是程序自动生成的聚合 M3U 文件，请勿手动编辑。
+5. 别的vps上生成的播放链接放在主vps的\`remote_m3u/no_proxy/sources.txt内便能成为cdn链接节点。
 
-5.别的vps上生成的播放链接放在主vps的\`remote_m3u/no_proxy/sources.txt内便能成为cdn链接节点。
 
 注意：除了 \`default.txt\` 和 \`default_sources.txt\`，其他文件在升级时不会被覆盖。" >
 
